@@ -1,1 +1,64 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d0f18"><title>Dashboard | PillMate</title><link rel="stylesheet" href="/auth/auth.css"><style>.dash{width:min(100%,900px)}.dash-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:24px}.dash-top .brand{margin:0;justify-content:flex-start}.signout{border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);padding:10px 14px;font-weight:700;cursor:pointer}.welcome{font-size:clamp(28px,5vw,42px);margin:0 0 8px}.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-top:18px}.muted{color:var(--muted);line-height:1.6}.setup{display:inline-block;background:var(--gold);color:#171717;text-decoration:none;padding:12px 16px;border-radius:9px;font-weight:800;margin-top:10px}</style></head><body><main class="auth-shell dash"><header class="dash-top"><a class="brand" href="/"><span class="brand-mark"></span>PillMate</a><button class="signout" id="signout" type="button">Log out</button></header><section><p class="eyebrow">Your PillMate space</p><h1 class="welcome">Welcome, <span id="user-name">there</span></h1><p class="muted">You're signed in. Your medication and caregiver setup will live here.</p><div class="panel"><h2>Let's set up your routine</h2><p class="muted">The account and authentication foundation is in place. The next step is to connect your medication profile, daily dose schedule and refill reminders to your account.</p><div class="message show" id="setup-status" role="status">Checking your account…</div></div></section></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/auth/supabase-config.js"></script><script> (async()=>{const status=document.getElementById("setup-status");try{if(!window.PILLMATE_SUPABASE_URL||window.PILLMATE_SUPABASE_URL.includes("YOUR_"))throw new Error("Supabase still needs to be configured.");const sb=window.supabase.createClient(window.PILLMATE_SUPABASE_URL,window.PILLMATE_SUPABASE_ANON_KEY);const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){location.replace("/auth/login.html");return;}const name=data.session.user.user_metadata?.full_name||data.session.user.email;document.getElementById("user-name").textContent=name;status.textContent="You're securely signed in. Medication setup is the next feature to connect.";status.className="message show success";document.getElementById("signout").addEventListener("click",async()=>{await sb.auth.signOut();location.replace("/auth/login.html");});}catch(e){status.textContent=e.message;status.className="message show error";}})();</script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0d0f18">
+<title>Dashboard | PillMate</title><link rel="stylesheet" href="/auth/auth.css">
+<style>
+.dash{width:min(100%,980px)}.dash-top{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:28px}.dash-top .brand{margin:0;justify-content:flex-start}.signout,.secondary{border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);padding:10px 14px;font-weight:700;cursor:pointer}.welcome{font-size:clamp(28px,5vw,42px);margin:0 0 8px}.muted{color:var(--muted);line-height:1.6}.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:24px;margin-top:20px}.panel h2{margin:0 0 8px;font-size:20px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px}.field select,.field input{width:100%;height:47px;padding:0 13px;border:1px solid var(--border);border-radius:9px;background:#0d0f18;color:var(--text);font:inherit}.field select:focus,.field input:focus{outline:1px solid var(--gold)}.field small{display:block;color:var(--muted);font-size:11px;margin-top:6px}.submit{width:100%;height:48px;border:0;border-radius:9px;background:var(--gold);color:#171717;font-weight:850;cursor:pointer}.med-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:18px}.med-card{border:1px solid var(--border);border-radius:12px;padding:18px;background:#101321}.med-card h3{margin:0 0 8px}.count{font-size:28px;font-weight:800;color:var(--gold)}.pill-meta{font-size:13px;color:var(--muted);line-height:1.7}.alert{color:var(--danger);font-weight:700;font-size:12px;margin-top:10px}.success-note{color:var(--success)}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.message{display:none}.message.show{display:block}.section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.empty{border:1px dashed var(--border);border-radius:10px;padding:20px;color:var(--muted);text-align:center}@media(max-width:600px){.grid{grid-template-columns:1fr}.panel{padding:19px}.dash-top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<main class="auth-shell dash">
+<header class="dash-top"><a class="brand" href="/"><span class="brand-mark"></span>PillMate</a><button class="signout" id="signout" type="button">Log out</button></header>
+<section><p class="eyebrow">Your PillMate space</p><h1 class="welcome">Welcome, <span id="user-name">there</span></h1><p class="muted">Set up your medication routine and keep an eye on what needs refilling.</p></section>
+<section class="panel">
+<h2>Your contact details</h2><p class="muted">Add the WhatsApp number where you'd like to receive refill reminders. Include your country code.</p>
+<form id="profile-form"><div class="field"><label for="phone">WhatsApp number</label><input id="phone" name="phone" type="tel" placeholder="+91 98765 43210" required autocomplete="tel"><small>Include country code, for example +91 for India.</small></div><button class="submit" type="submit" id="save-profile">Save contact number</button><div class="message" id="profile-message" role="status"></div></form>
+</section>
+<section class="panel">
+<h2>Add a medication</h2><p class="muted">Enter the pack size, how many pills are left right now, and your daily dose.</p>
+<form id="med-form">
+<div class="grid">
+<div class="field"><label for="medicine">Medicine name</label><input id="medicine" name="medicine" placeholder="e.g. Metformin" required maxlength="120"></div>
+<div class="field"><label for="total">Total pills in pack</label><input id="total" name="total" type="number" min="1" step="1" placeholder="e.g. 30" required></div>
+<div class="field"><label for="remaining">Pills currently remaining</label><input id="remaining" name="remaining" type="number" min="0" step="1" placeholder="e.g. 18" required></div>
+<div class="field"><label for="daily">Pills per day</label><input id="daily" name="daily" type="number" min="0.1" step="0.1" placeholder="e.g. 2" required></div>
+</div>
+<div class="field"><label for="times">Reminder times</label><input id="times" name="times" placeholder="e.g. 08:00, 20:00"><small>Use 24-hour time, separated by commas. You can leave this blank and add times later.</small></div>
+<button class="submit" type="submit" id="add-med">Add medication</button><div class="message" id="med-message" role="status"></div>
+</form>
+</section>
+<section class="panel">
+<div class="section-head"><div><h2>Your medications</h2><p class="muted">Refill threshold is 10% of the original pack size, rounded up.</p></div><button class="secondary" id="refresh" type="button">Refresh</button></div>
+<div id="med-list" class="med-list"><div class="empty">Loading your medications…</div></div>
+<p class="muted" style="font-size:12px;margin-top:16px">The demo button simulates a day's pill-count deduction only. It does not confirm that a dose was swallowed, and it does not send WhatsApp messages or run an automatic daily schedule.</p>
+</section>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="/auth/supabase-config.js"></script>
+<script>
+(async()=>{
+const $=id=>document.getElementById(id);let sb,user;
+const show=(id,msg,type="success")=>{const el=$(id);el.textContent=msg;el.className="message show "+type};
+try{
+if(!window.PILLMATE_SUPABASE_URL||!window.PILLMATE_SUPABASE_ANON_KEY)throw new Error("Supabase configuration is missing.");
+sb=window.supabase.createClient(window.PILLMATE_SUPABASE_URL,window.PILLMATE_SUPABASE_ANON_KEY);
+const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){location.replace("/auth/login.html");return}
+user=data.session.user;$("user-name").textContent=user.user_metadata?.full_name||user.email;
+const {data:profile,error:pe}=await sb.from("profiles").select("whatsapp_phone").eq("id",user.id).maybeSingle();if(pe)throw pe;if(profile?.whatsapp_phone)$("phone").value=profile.whatsapp_phone;
+await loadMeds();
+$("signout").onclick=async()=>{await sb.auth.signOut();location.replace("/auth/login.html")};
+$("profile-form").onsubmit=async e=>{e.preventDefault();const phone=$("phone").value.trim();if(!/^\+[1-9]\d{7,14}$/.test(phone)){show("profile-message","Enter a valid number with country code, e.g. +919876543210.","error");return}
+const {error}=await sb.from("profiles").upsert({id:user.id,full_name:user.user_metadata?.full_name||"",whatsapp_phone:phone});if(error)throw error;show("profile-message","WhatsApp number saved.")};
+$("med-form").onsubmit=async e=>{e.preventDefault();const total=Number($("total").value),remaining=Number($("remaining").value),daily=Number($("daily").value);if(!Number.isInteger(total)||total<1||!Number.isInteger(remaining)||remaining<0||remaining>total||!Number.isFinite(daily)||daily<=0){show("med-message","Check the pill counts and daily dosage. Remaining pills cannot exceed the pack size.","error");return}
+const times=$("times").value.split(",").map(x=>x.trim()).filter(Boolean);if(times.some(t=>!/^([01]\d|2[0-3]):[0-5]\d$/.test(t))){show("med-message","Enter reminder times in HH:MM 24-hour format, separated by commas.","error");return}
+const {error}=await sb.from("medications").insert({user_id:user.id,medicine_name:$("medicine").value.trim(),total_pills:total,pills_remaining:remaining,daily_dose:daily,reminder_times:times});if(error)throw error;$("med-form").reset();show("med-message","Medication added.");await loadMeds()};
+$("refresh").onclick=loadMeds;
+}catch(e){document.body.insertAdjacentHTML("beforeend",'<p style="color:#e06c75;text-align:center;padding:16px">'+String(e.message).replace(/[<>&]/g,"")+'</p>')}
+async function loadMeds(){const {data,error}=await sb.from("medications").select("*").eq("user_id",user.id).eq("active",true).order("created_at",{ascending:false});if(error){$("med-list").innerHTML='<div class="empty">Database setup is needed before medications can be saved. Run the SQL setup file in Supabase.</div>';return}
+if(!data.length){$("med-list").innerHTML='<div class="empty">No medications added yet. Add your first medication above.</div>';return}
+$("med-list").innerHTML=data.map(m=>{const threshold=Math.ceil(Number(m.total_pills)*.1),low=Number(m.pills_remaining)<=threshold;return '<article class="med-card"><h3>'+escapeHtml(m.medicine_name)+'</h3><div class="count">'+Number(m.pills_remaining)+' pills left</div><div class="pill-meta">Pack size: '+m.total_pills+'<br>Daily dose: '+m.daily_dose+' pill(s)<br>Refill alert at: '+threshold+' or fewer<br>Reminder times: '+(m.reminder_times?.length?m.reminder_times.join(", "):"Not set")+'</div>'+(low?'<div class="alert">Refill soon — you are at or below your 10% threshold.</div>':'')+'<div class="actions"><button class="secondary" data-demo="'+m.id+'">Demo: simulate one day</button></div></article>'}).join("");
+document.querySelectorAll("[data-demo]").forEach(b=>b.onclick=async()=>{const m=data.find(x=>x.id===b.dataset.demo);const next=Math.max(0,Number(m.pills_remaining)-Number(m.daily_dose));const {error}=await sb.from("medications").update({pills_remaining:next}).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}await loadMeds()});
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+})();
+</script></body></html>
