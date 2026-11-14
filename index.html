@@ -39,7 +39,7 @@
     .nav-links { display: flex; gap: 27px; align-items: center; font-size: .8rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
     .nav-links a { opacity: .8; transition: opacity .2s; }
     .nav-links a:hover { opacity: 1; }
-    .sound-button { display: inline-flex; gap: 7px; align-items: center; border: 1px solid #ffffff77; padding: 10px 13px; color: inherit; border-radius: 999px; background: #ffffff12; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; backdrop-filter: blur(10px); }
+    .nav-actions { display: flex; align-items: center; gap: 12px; }\n    .login-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 9px 16px; border: 1px solid var(--gold); border-radius: 999px; color: var(--ink); background: var(--gold); font-size: .76rem; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; transition: transform .18s, background .18s; }\n    .login-button:hover { transform: translateY(-2px); background: #ffe18a; }\n    .sound-button { display: inline-flex; gap: 7px; align-items: center; border: 1px solid #ffffff77; padding: 10px 13px; color: inherit; border-radius: 999px; background: #ffffff12; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; backdrop-filter: blur(10px); }
     .sound-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px #ffd24d22; }
 
     .hero { position: relative; min-height: 780px; display: grid; place-items: center; padding: 140px 0 80px; color: #fff; overflow: hidden; background: radial-gradient(circle at 50% 32%, #574b91 0, #33285f 31%, #1c1637 72%); }
@@ -869,7 +869,7 @@
   <div class="nav-wrap"><nav class="shell">
     <a class="logo" href="#top" aria-label="PillMate home"><span class="logo-mark"></span>PillMate</a>
     <div class="nav-links"><a href="#how">How it works</a><a href="#demo">Try PillMate</a><a href="#offer">Get PillMate</a><a href="#contact">Contact</a></div>
-    <button class="sound-button" id="globalSound" type="button" aria-label="Play a gentle PillMate chime"><span class="sound-dot"></span>sound on</button>
+    <div class="nav-actions"><a class="login-button" href="/auth/login.html">Log in</a><button class="sound-button" id="globalSound" type="button" aria-label="Play a gentle PillMate chime"><span class="sound-dot"></span>sound on</button></div>
   </nav></div>
 
   <main id="main">
