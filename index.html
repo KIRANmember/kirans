@@ -1,0 +1,1247 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#1b1535" />
+  <title>PillMate — light for every dose</title>
+  <style>
+    :root {
+      --ink: #201a3e;
+      --night: #1c1637;
+      --paper: #fbf8f1;
+      --lavender: #e7dcff;
+      --lilac: #aa8cf5;
+      --peach: #ffc8a6;
+      --gold: #ffd24d;
+      --mint: #abedce;
+      --red: #fb715e;
+      --line: rgba(32, 26, 62, .18);
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; min-width: 320px; color: var(--ink); background: var(--paper); font-family: var(--sans); overflow-x: hidden; }
+    button, input, textarea { font: inherit; }
+    button { cursor: pointer; }
+    a { color: inherit; text-decoration: none; }
+    .shell { width: min(1180px, calc(100% - 48px)); margin: 0 auto; }
+    .access-skip { position: absolute; left: -1000px; top: 10px; z-index: 100; padding: 12px 15px; color: #fff; background: var(--ink); border-radius: 10px; }
+    .access-skip:focus { left: 10px; }
+
+    .nav-wrap { position: absolute; z-index: 20; top: 0; left: 0; width: 100%; }
+    nav { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 22px 0; color: #fff; }
+    .logo { display: inline-flex; align-items: center; gap: 10px; font-family: var(--serif); font-size: 1.7rem; font-weight: 700; letter-spacing: -.06em; }
+    .logo-mark { position: relative; width: 29px; height: 29px; border: 2px solid currentColor; border-radius: 50%; overflow: hidden; }
+    .logo-mark::before { content: ""; position: absolute; width: 3px; height: 34px; background: currentColor; left: 12px; top: -4px; transform: rotate(37deg); }
+    .nav-links { display: flex; gap: 27px; align-items: center; font-size: .8rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+    .nav-links a { opacity: .8; transition: opacity .2s; }
+    .nav-links a:hover { opacity: 1; }
+    .sound-button { display: inline-flex; gap: 7px; align-items: center; border: 1px solid #ffffff77; padding: 10px 13px; color: inherit; border-radius: 999px; background: #ffffff12; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; backdrop-filter: blur(10px); }
+    .sound-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 3px #ffd24d22; }
+
+    .hero { position: relative; min-height: 780px; display: grid; place-items: center; padding: 140px 0 80px; color: #fff; overflow: hidden; background: radial-gradient(circle at 50% 32%, #574b91 0, #33285f 31%, #1c1637 72%); }
+    .hero::before { content: ""; position: absolute; inset: 0; opacity: .72; background-image: radial-gradient(#fff 1px, transparent 1px), radial-gradient(#fff 1px, transparent 1px); background-size: 78px 78px, 103px 103px; background-position: 9px 19px, 45px 61px; mask-image: linear-gradient(to bottom, #000, transparent 89%); }
+    .hero-grid { display: grid; grid-template-columns: 1.02fr .98fr; align-items: center; gap: 36px; position: relative; z-index: 2; }
+    .kicker { display: inline-flex; gap: 8px; align-items: center; padding: 9px 12px; border: 1px solid #ffffff55; border-radius: 999px; color: #fff; background: #ffffff0f; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+    .kicker i { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 18px var(--gold); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 690px; margin: 20px 0 24px; font-family: var(--serif); font-size: clamp(3.8rem, 8vw, 7.5rem); font-weight: 500; line-height: .88; letter-spacing: -.085em; }
+    h1 em { position: relative; color: var(--gold); font-style: italic; }
+    h1 em::after { content: ""; position: absolute; left: 8%; bottom: -.05em; width: 86%; height: .16em; border-radius: 50%; background: #fff4bd; transform: rotate(-2deg); opacity: .72; }
+    .hero-copy { max-width: 505px; font-size: clamp(1rem, 1.65vw, 1.2rem); line-height: 1.6; color: #eeebff; }
+    .hero-cta { display: flex; gap: 13px; flex-wrap: wrap; margin-top: 28px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 50px; padding: 13px 19px; border: 1.5px solid transparent; border-radius: 12px; font-size: .88rem; font-weight: 850; transition: transform .18s, box-shadow .18s, background .18s; }
+    .button:hover { transform: translateY(-3px); }
+    .button.primary { color: var(--ink); background: var(--gold); box-shadow: 0 6px 0 #d99715; }
+    .button.primary:hover { box-shadow: 0 3px 0 #d99715; }
+    .button.ghost { color: #fff; background: #ffffff0c; border-color: #ffffff66; }
+    .hero-footnote { margin: 20px 0 0; color: #c8bee8; font-size: .78rem; font-weight: 650; }
+
+    .scene { position: relative; height: 530px; min-width: 0; perspective: 1100px; }
+    .orbit { position: absolute; top: 50%; left: 50%; border: 1px solid #ffffff3f; border-radius: 50%; transform: translate(-50%, -50%) rotateX(68deg) rotateZ(-20deg); }
+    .orbit.one { width: 475px; height: 235px; } .orbit.two { width: 380px; height: 187px; transform: translate(-50%, -50%) rotateX(69deg) rotateZ(48deg); }
+    .orbit.three { width: 565px; height: 275px; transform: translate(-50%, -50%) rotateX(72deg) rotateZ(83deg); opacity: .46; }
+    .gem { position: absolute; z-index: 1; left: 50%; top: 50%; width: 64px; height: 64px; border: 1px solid #fff8; border-radius: 23px 48px 32px 47px; background: var(--gem); box-shadow: inset 7px 7px 10px #fff5, inset -10px -8px 15px #0002, 0 0 32px var(--glow); transform: translate(-50%, -50%) translate3d(var(--x), var(--y), var(--z)) rotate(var(--r)); animation: orbitFloat var(--time) ease-in-out infinite alternate; }
+    .gem::after { content: ""; position: absolute; width: 17px; height: 17px; top: 13px; left: 13px; border-radius: 50%; background: #fff9; filter: blur(2px); }
+    .g1 { --gem: #ffd45c; --glow: #ffcf4d99; --x: -198px; --y: -87px; --z: 30px; --r: 18deg; --time: 4.1s; }
+    .g2 { --gem: #9de8c7; --glow: #9de8c799; --x: 176px; --y: -123px; --z: 32px; --r: -32deg; --time: 4.8s; }
+    .g3 { --gem: #f293d0; --glow: #f293d099; --x: 224px; --y: 107px; --z: -2px; --r: 29deg; --time: 3.9s; }
+    .g4 { --gem: #ae93fa; --glow: #ae93fa99; --x: -146px; --y: 136px; --z: 20px; --r: 74deg; --time: 4.5s; }
+    .g5 { --gem: #ffa385; --glow: #ffa38599; --x: 25px; --y: -193px; --z: 14px; --r: -2deg; --time: 3.5s; }
+    .g6 { --gem: #81cafa; --glow: #81cafa99; --x: 194px; --y: 7px; --z: 60px; --r: 103deg; --time: 4.7s; }
+    .pillbox-3d { position: absolute; z-index: 4; top: 50%; left: 50%; width: 280px; height: 263px; transform: translate(-50%, -50%) rotateX(55deg) rotateZ(-28deg); transform-style: preserve-3d; animation: boxFloat 5.2s ease-in-out infinite; }
+    .pillbox-3d::before { content: ""; position: absolute; z-index: -1; left: -24px; top: 10px; width: 34px; height: 100%; border: 1px solid #f4e9d8; border-radius: 4px 0 0 4px; background: linear-gradient(90deg, #283350, #526482); transform: skewY(21deg); }
+    .box-top, .box-side { position: absolute; border: 1px solid #f2e8d8; background: #faf7f0; }
+    .box-top { z-index: 2; inset: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 7px; padding: 10px; border-radius: 7px; box-shadow: inset 0 0 23px #fff, 0 32px 44px #08041455; }
+    .box-side { z-index: -2; left: 5px; bottom: -23px; width: 100%; height: 29px; border-radius: 0 0 5px 5px; background: #283451; filter: brightness(.8); transform: skewX(-46deg); transform-origin: top; }
+    .compartment { position: relative; overflow: hidden; border: 1px solid #d9d1c4; border-radius: 4px; background: linear-gradient(150deg, #d6d3ce, #f1eee6); }
+    .compartment::before { content: ""; position: absolute; width: 22px; height: 10px; top: 44%; left: 41%; border: 1px solid #fff; border-radius: 9px; background: var(--pill-color); box-shadow: 0 1px 4px #4b376855; transform: rotate(-20deg); }
+    .compartment:nth-child(3n + 1), .compartment:nth-child(3n) { border-color: #672435; background: linear-gradient(145deg, #8a3348, #5d1f30); box-shadow: inset 2px 2px 4px #bd7589; }
+    .compartment:nth-child(3n + 1)::before, .compartment:nth-child(3n)::before { opacity: 0; }
+    .compartment:nth-child(2n)::before { transform: rotate(35deg); } .compartment:nth-child(3n + 2)::before { background: #8be1bd; }
+    .box-light { position: absolute; z-index: 8; top: -13px; right: 24px; width: 13px; height: 13px; border: 1px solid #fff; border-radius: 50%; background: var(--gold); box-shadow: 0 0 15px 6px #ffdc5eaa; animation: pulse 1.5s infinite alternate; }
+    .scene-caption { position: absolute; z-index: 5; bottom: 14px; left: 50%; width: max-content; transform: translateX(-50%); padding: 8px 12px; border: 1px solid #ffffff44; border-radius: 999px; color: #ded7f9; background: #19112d99; font-size: .72rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; backdrop-filter: blur(8px); }
+    .scroll-hint { position: absolute; z-index: 4; bottom: 22px; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 8px; transform: translateX(-50%); color: #c9bfeb; font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .scroll-hint span { width: 1px; height: 34px; background: linear-gradient(#fff, transparent); }
+
+    .evolution { --simple-opacity: 1; --parts-opacity: 0; --grid-gap: 5px; --box-scale: .78; --box-tilt: 0deg; --slot-a: 0px; --slot-b: 0px; --slot-c: 0px; position: relative; height: 230vh; background: #efe8fb; }
+    .evolution-sticky { position: sticky; top: 0; height: 100vh; display: grid; align-items: center; overflow: hidden; background: radial-gradient(circle at 77% 45%, #ffe68e 0, #f3dafa 18%, transparent 47%), linear-gradient(135deg, #f9f6f0, #e9e1ff); }
+    .evolution-sticky::before { content: ""; position: absolute; width: min(67vw, 790px); height: min(67vw, 790px); right: -10%; top: 50%; border: 1px solid #967bc93b; border-radius: 50%; transform: translateY(-50%); }
+    .evolution-sticky::after { content: ""; position: absolute; width: 78%; height: 1px; bottom: 13%; left: 11%; background: linear-gradient(90deg, transparent, #8d75bf50, transparent); }
+    .evolution-grid { position: relative; z-index: 1; display: grid; grid-template-columns: .78fr 1.22fr; gap: 40px; align-items: center; }
+    .evolution-copy { max-width: 445px; }
+    .evolution-copy h2 { margin: 14px 0 20px; font-family: var(--serif); font-size: clamp(3rem, 5.8vw, 5.8rem); font-weight: 500; line-height: .91; letter-spacing: -.08em; }
+    .evolution-copy h2 em { color: #7152bd; font-style: italic; }
+    .evolution-copy p { max-width: 390px; min-height: 53px; margin: 0; color: #5d5273; font-size: 1.05rem; line-height: 1.52; }
+    .evolution-meter { display: flex; gap: 8px; margin-top: 33px; }
+    .evolution-meter span { width: 42px; height: 4px; border-radius: 99px; background: #cfc3e4; transition: background .3s, transform .3s; }
+    .evolution-meter span.on { background: #7152bd; transform: scaleX(1.08); }
+    .evolution-figure { position: relative; height: 540px; perspective: 1100px; }
+    .evolution-aura { position: absolute; top: 49%; left: 50%; width: 420px; height: 190px; border: 1px solid #8d72bc66; border-radius: 50%; transform: translate(-50%, -50%) rotateX(67deg) rotateZ(-24deg); }
+    .evolution-aura.two { width: 550px; height: 244px; opacity: .5; transform: translate(-50%, -50%) rotateX(67deg) rotateZ(36deg); }
+    .evolution-box { position: absolute; z-index: 2; top: 50%; left: 50%; width: min(390px, 76vw); height: 300px; padding: 14px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: var(--grid-gap); border: 1.5px solid #675382; border-radius: 9px; background: #faf7f0; box-shadow: inset 0 0 38px #ffffff, 0 31px 0 #41506e, 0 49px 55px #2e1c4b55; transform: translate(-50%, -50%) rotateX(56deg) rotateZ(calc(-26deg + var(--box-tilt))) scale(var(--box-scale)); transform-style: preserve-3d; will-change: transform; }
+    .evolution-box::before { content: ""; position: absolute; z-index: -1; left: -26px; top: 9px; width: 33px; height: 100%; border: 1px solid #e9e1d2; border-radius: 5px 0 0 5px; background: #33405f; transform: skewY(18deg); transform-origin: top; }
+    .evolution-solid { position: absolute; z-index: 5; inset: 0; overflow: hidden; border: 1px solid #675382; border-radius: 9px; background: linear-gradient(145deg, #fffefd, #c8b8ee 65%, #9d85cf); opacity: var(--simple-opacity); pointer-events: none; }
+    .evolution-solid::before { content: ""; position: absolute; width: 35%; aspect-ratio: 1; top: 17%; left: 18%; border-radius: 50%; background: #ffffff95; filter: blur(11px); }
+    .evolution-solid::after { content: "KIRAN"; position: absolute; right: 25px; bottom: 19px; color: #5f4e81; font-size: .74rem; font-weight: 900; letter-spacing: .18em; }
+    .evolution-slot { position: relative; overflow: hidden; border: 1px solid #d8cfbf; border-radius: 4px; background: linear-gradient(145deg, #fff, #d9d7d0); box-shadow: inset 3px 3px 8px #9e8fbc66; opacity: var(--parts-opacity); transition: box-shadow .14s; }
+    .evolution-slot:nth-child(1), .evolution-slot:nth-child(5), .evolution-slot:nth-child(9) { transform: translateY(var(--slot-a)); }
+    .evolution-slot:nth-child(2), .evolution-slot:nth-child(4), .evolution-slot:nth-child(8) { transform: translateY(var(--slot-b)); }
+    .evolution-slot:nth-child(3), .evolution-slot:nth-child(6), .evolution-slot:nth-child(7) { transform: translateY(var(--slot-c)); }
+    .evolution-slot::before { content: ""; position: absolute; width: 37px; height: 17px; top: 50%; left: 50%; border: 1px solid #fff; border-radius: 13px; background: #fa907e; box-shadow: 0 3px 6px #39264c55; transform: translate(-50%, -50%) rotate(-22deg); }
+    .evolution-slot:nth-child(3n + 1), .evolution-slot:nth-child(3n) { border-color: #682638; background: linear-gradient(145deg, #893448, #5b1e2e); box-shadow: inset 2px 2px 5px #bd7488; }
+    .evolution-slot:nth-child(3n + 1)::before, .evolution-slot:nth-child(3n)::before { opacity: 0; }
+    .evolution-slot:nth-child(2)::before, .evolution-slot:nth-child(5)::before, .evolution-slot:nth-child(8)::before { background: #99e6c4; transform: translate(-50%, -50%) rotate(31deg); }
+    .evolution-slot.final { box-shadow: inset 0 0 19px #fff7bf, 0 0 31px #ffcf4d; }
+    .evolution-light { position: absolute; z-index: 7; top: -16px; right: 31px; width: 15px; height: 15px; border: 1px solid #fff; border-radius: 50%; background: #ffd550; box-shadow: 0 0 22px 8px #ffdc6599; opacity: var(--parts-opacity); }
+    .evolution-tag { position: absolute; z-index: 5; bottom: 38px; left: 50%; padding: 9px 13px; border: 1px solid #8067ac77; border-radius: 999px; color: #5d4a78; background: #ffffffa6; font-size: .73rem; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; transform: translateX(-50%); white-space: nowrap; }
+
+    .intro { position: relative; padding: 135px 0 120px; background: var(--paper); overflow: hidden; }
+    .intro::before { content: ""; position: absolute; z-index: 0; left: -120px; top: 130px; width: 330px; height: 330px; border: 1px solid var(--lilac); border-radius: 50%; opacity: .4; }
+    .eyebrow { color: #65568e; font-size: .78rem; font-weight: 900; letter-spacing: .11em; text-transform: uppercase; }
+    .intro-grid { position: relative; z-index: 1; display: grid; grid-template-columns: .86fr 1.14fr; align-items: start; gap: 10vw; }
+    .intro h2, .error h2, .demo-heading h2, .contact h2 { max-width: 700px; margin: 15px 0 24px; font-family: var(--serif); font-size: clamp(2.9rem, 6vw, 5.5rem); font-weight: 500; line-height: .94; letter-spacing: -.075em; }
+    .intro h2 em, .error h2 em, .demo-heading h2 em, .contact h2 em { color: #7152bd; font-style: italic; }
+    .intro-copy { max-width: 600px; margin: 0 0 36px; font-size: clamp(1.08rem, 1.5vw, 1.34rem); line-height: 1.55; }
+    .promise-list { display: grid; gap: 0; border-top: 1px solid var(--line); }
+    .promise { display: grid; grid-template-columns: 46px 1fr; gap: 12px; padding: 17px 0; border-bottom: 1px solid var(--line); }
+    .promise-icon { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 12px; background: var(--lavender); font-size: 1.1rem; }
+    .promise strong { display: block; margin-bottom: 2px; font-size: 1rem; letter-spacing: -.02em; }
+    .promise span { color: #635e72; font-size: .91rem; line-height: 1.45; }
+    .sun-window { position: relative; width: min(100%, 350px); aspect-ratio: .78; margin: 0 auto; overflow: hidden; border: 1px solid #b6a3e6; border-radius: 170px 170px 25px 25px; background: linear-gradient(180deg, #ddd1fa 0%, #ffcfaa 68%, #ffd95b 100%); box-shadow: 13px 15px 0 #e8dfcd; }
+    .sun-window::before { content: ""; position: absolute; width: 190px; height: 190px; top: 42px; left: 50%; border: 1px solid #fdedc2; border-radius: 50%; background: #fff0a6; box-shadow: 0 0 50px #fff0a6aa; transform: translateX(-50%); }
+    .sun-window::after { content: ""; position: absolute; left: 17%; right: 17%; bottom: 0; height: 46%; border-radius: 100% 100% 0 0; background: #8873ba; clip-path: polygon(0 61%, 25% 24%, 42% 47%, 65% 3%, 100% 57%, 100% 100%, 0 100%); }
+    .mini-box { position: absolute; z-index: 2; left: 50%; bottom: 43px; width: 150px; height: 130px; padding: 8px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 4px; border: 2px solid #f2eadd; border-radius: 5px; background: #f9f5ff; box-shadow: -10px 8px 0 #344161, 9px 10px 0 #58497944; transform: translateX(-50%) rotateX(55deg) rotateZ(-20deg); }
+    .mini-box span { border: 1px solid #aa9ecb; border-radius: 2px; background: #e3d9ff; } .mini-box span:nth-child(3n + 1), .mini-box span:nth-child(3n) { background: #79293c; }
+
+    .error { padding: 120px 0; color: #fff; background: #201a3e; overflow: hidden; }
+    .error .eyebrow { color: #c6b9ef; }
+    .error h2 { max-width: 790px; }
+    .error h2 em { color: var(--gold); }
+    .error-lead { max-width: 600px; color: #e8e1fb; font-size: 1.14rem; line-height: 1.55; }
+    .guard-rail { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 54px; }
+    .guard-rail::before { content: ""; position: absolute; z-index: 0; top: -13px; left: 7%; right: 7%; height: 2px; background: linear-gradient(90deg, transparent, #ffc74e, transparent); }
+    .rail-card { position: relative; z-index: 1; min-height: 245px; padding: 25px; border: 1px solid #ffffff38; border-radius: 22px; background: linear-gradient(140deg, #ffffff14, #ffffff04); backdrop-filter: blur(12px); transition: transform .35s, background .35s; }
+    .rail-card:hover { background: #ffffff1c; transform: translateY(-9px); }
+    .rail-num { color: var(--gold); font-family: var(--serif); font-size: 1.45rem; font-style: italic; }
+    .rail-card h3 { margin: 46px 0 9px; font-family: var(--serif); font-size: 1.65rem; font-weight: 500; letter-spacing: -.045em; }
+    .rail-card p { margin: 0; color: #d4cef0; line-height: 1.5; font-size: .94rem; }
+    .not-a-promise { margin: 30px 0 0; color: #aaa0cc; font-size: .78rem; line-height: 1.45; }
+
+    .demo { position: relative; padding: 127px 0 120px; overflow: hidden; background: linear-gradient(155deg, #f5eafe, #fbf8f1 46%, #f4ffd3); }
+    .demo::before { content: ""; position: absolute; width: 690px; height: 690px; top: -310px; right: -220px; border: 1px solid #8e71dd; border-radius: 50%; opacity: .3; }
+    .demo-heading { position: relative; z-index: 1; display: flex; justify-content: space-between; gap: 35px; align-items: end; margin-bottom: 38px; }
+    .demo-heading h2 { margin-bottom: 0; }
+    .demo-heading p { max-width: 340px; margin: 0 0 8px; font-size: 1rem; line-height: 1.52; }
+    .demo-shell { position: relative; z-index: 1; display: grid; grid-template-columns: .9fr 1.1fr; min-height: 588px; overflow: hidden; border: 1.5px solid #5b4e72; border-radius: 26px; background: #fffef9; box-shadow: 13px 15px 0 #7e67ba55; }
+    .customizer { padding: 28px; border-right: 1.5px solid #5b4e72; background: #f8f4ff; }
+    .step-label { color: #716388; font-size: .75rem; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; }
+    .customizer h3 { margin: 9px 0 22px; font-family: var(--serif); font-size: 2.05rem; font-weight: 500; letter-spacing: -.06em; }
+    .field { margin: 17px 0; }
+    .field label { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 7px; font-size: .86rem; font-weight: 800; }
+    .field span { color: #8d82a0; font-size: .76rem; font-weight: 700; }
+    .time-input { width: 100%; padding: 14px; color: var(--ink); border: 1.5px solid #8c79ad; border-radius: 12px; background: #fff; font-size: 1.15rem; font-weight: 800; }
+    .pill-options { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+    .pill-option { padding: 12px 10px; border: 1.5px solid #a99bbe; border-radius: 11px; color: var(--ink); background: #fff; font-size: .85rem; font-weight: 800; text-align: left; transition: .18s; }
+    .pill-option:hover, .pill-option.active { border-color: #5c3e9a; background: #e6d9ff; box-shadow: 3px 3px 0 #9076c5; transform: translate(-2px, -2px); }
+    .slider { width: 100%; accent-color: #7150bd; }
+    .hint-card { display: flex; gap: 10px; margin-top: 26px; padding: 13px; border: 1px solid #d5c4f6; border-radius: 13px; color: #62537c; background: #ede6fc; font-size: .8rem; line-height: 1.4; }
+    .hint-card b { font-size: 1rem; }
+    .simulator { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 490px; padding: 32px; overflow: hidden; color: #fff; background: radial-gradient(circle at 48% 35%, #6658a4, #2a214b 67%); }
+    .simulator::before { content: ""; position: absolute; width: 420px; height: 420px; border: 1px solid #ffffff33; border-radius: 50%; transform: rotateX(62deg); }
+    .sim-time { position: absolute; z-index: 7; top: 27px; right: 29px; padding: 8px 11px; border: 1px solid #ffffff55; border-radius: 99px; color: #ebe6ff; background: #170f2d66; font-size: .78rem; font-weight: 850; letter-spacing: .06em; }
+    .demo-box { position: relative; z-index: 3; width: min(345px, 77vw); height: 278px; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 7px; padding: 12px; border: 2px solid #fff9; border-radius: 7px; background: #faf7f0; box-shadow: -16px 13px 0 #354261, inset 0 0 25px #fff, 0 27px 0 #625287, 0 43px 53px #03001288; transform: rotateX(57deg) rotateZ(-21deg); transform-style: preserve-3d; transition: transform .65s cubic-bezier(.2,.8,.2,1); }
+    .demo-box.alarm { animation: buzz .13s linear 12; }
+    .demo-box .slot { position: relative; overflow: hidden; border: 1px solid #cbc3b7; border-radius: 4px; background: linear-gradient(150deg, #fdfdff, #d7d4cd); box-shadow: inset 3px 3px 8px #9a87ba66; transition: background .35s, box-shadow .35s, transform .4s; }
+    .demo-box .slot::before { content: ""; position: absolute; width: 31px; height: 15px; top: 50%; left: 50%; border: 1px solid #fff; border-radius: 12px; background: #ff907c; box-shadow: 0 2px 5px #48335e66; transform: translate(-50%, -50%) rotate(-22deg); transition: opacity .45s, transform .45s; }
+    .demo-box .slot:nth-child(3n + 1), .demo-box .slot:nth-child(3n) { border-color: #682638; background: linear-gradient(145deg, #893448, #5b1e2e); box-shadow: inset 2px 2px 5px #bd7488; }
+    .demo-box .slot:nth-child(3n + 1)::before, .demo-box .slot:nth-child(3n)::before { opacity: 0; }
+    .demo-box .slot:nth-child(2)::before, .demo-box .slot:nth-child(5)::before, .demo-box .slot:nth-child(8)::before { background: #8ce2bd; transform: translate(-50%, -50%) rotate(32deg); }
+    .demo-box .slot.active { background: linear-gradient(150deg, #fffef3, #ffe578); box-shadow: inset 0 0 16px #fff4bd, 0 0 28px #ffd453; transform: translateY(-4px); }
+    .demo-box .slot.open { background: #51476f; transform: translateY(-22px) rotateX(18deg); box-shadow: 0 14px 0 #8374a1, 0 23px 30px #0e092255; }
+    .demo-box .slot.open::before { opacity: 0; transform: translate(-50%, 12px) rotate(-22deg); }
+    .alarm-copy { position: relative; z-index: 4; min-height: 75px; margin-top: 55px; text-align: center; }
+    .alarm-copy .status { display: block; color: #fedb68; font-size: .74rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+    .alarm-copy strong { display: block; margin-top: 4px; font-family: var(--serif); font-size: 1.8rem; font-weight: 500; letter-spacing: -.05em; }
+    .sim-buttons { position: relative; z-index: 5; display: flex; gap: 11px; margin-top: 17px; }
+    .sim-buttons button { min-height: 44px; padding: 10px 14px; border: 1px solid #fff8; border-radius: 10px; color: #fff; background: #ffffff12; font-size: .8rem; font-weight: 900; }
+    .sim-buttons .take { color: var(--ink); background: var(--gold); border-color: var(--gold); }
+    .sim-buttons button:hover { transform: translateY(-2px); }
+    .wave { position: absolute; z-index: 2; width: 140px; height: 140px; border: 1px solid #ffd45a; border-radius: 50%; opacity: 0; }
+    .simulator.ringing .wave { animation: wave 1.2s ease-out infinite; }
+    .simulator.ringing .wave.w2 { animation-delay: .4s; }
+    .simulator.ringing .wave.w3 { animation-delay: .8s; }
+
+    .contact { position: relative; padding: 135px 0 0; overflow: hidden; color: #fff; background: #21193d; }
+    .contact::before { content: ""; position: absolute; width: 1050px; height: 410px; bottom: -266px; left: 50%; border-radius: 50% 50% 0 0; background: radial-gradient(circle at 50% 0%, #e9c372, #b57bc8 45%, #463263 71%); transform: translateX(-50%); }
+    .contact-grid { position: relative; z-index: 2; display: grid; grid-template-columns: .86fr 1.14fr; gap: 8vw; align-items: end; }
+    .contact .eyebrow { color: #e2d9ff; }
+    .contact h2 { margin-bottom: 20px; }
+    .contact h2 em { color: var(--gold); }
+    .contact-lead { max-width: 470px; color: #e3dcf4; font-size: 1.1rem; line-height: 1.55; }
+    .contact-details { margin-top: 30px; color: #cfc5e9; font-size: .86rem; line-height: 1.6; }
+    .contact-form { padding: 27px; border: 1px solid #ffffff52; border-radius: 23px 23px 0 0; background: #ffffff12; backdrop-filter: blur(18px); }
+    .contact-form label { display: block; margin: 12px 0 6px; color: #e8e2fa; font-size: .77rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .contact-form input, .contact-form textarea { width: 100%; padding: 12px 13px; outline: 0; border: 1px solid #ffffff4d; border-radius: 10px; color: #fff; background: #ffffff10; }
+    .contact-form input:focus, .contact-form textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px #ffd24d22; }
+    .contact-form textarea { min-height: 98px; resize: vertical; }
+    .contact-form .button { margin-top: 16px; width: 100%; }
+    .form-note { min-height: 22px; margin: 11px 0 0; color: #dbd1f4; font-size: .77rem; line-height: 1.4; }
+    .footer { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 27px 0; border-top: 1px solid #ffffff2b; color: #ddd6f5; font-size: .77rem; }
+    .footer .logo { font-size: 1.35rem; }
+    .scroll-in { opacity: 0; transform: translateY(28px); transition: opacity .75s ease, transform .75s cubic-bezier(.2,.7,.2,1); }
+    .scroll-in.show { opacity: 1; transform: none; }
+    @keyframes orbitFloat { to { margin-top: -16px; transform: translate(-50%, -50%) translate3d(var(--x), var(--y), var(--z)) rotate(calc(var(--r) + 24deg)); } }
+    @keyframes boxFloat { 50% { transform: translate(-50%, -53%) rotateX(58deg) rotateZ(-20deg); } }
+    @keyframes pulse { to { box-shadow: 0 0 22px 9px #ffdc5e; } }
+    @keyframes buzz { 25% { transform: rotateX(57deg) rotateZ(-22deg) translateX(-7px); } 75% { transform: rotateX(57deg) rotateZ(-19deg) translateX(7px); } }
+    @keyframes wave { 0% { opacity: .8; transform: scale(.4); } 100% { opacity: 0; transform: scale(2.9); } }
+
+    /* Commercial reveal */
+    .commercial { position: relative; min-height: 100vh; overflow: hidden; color: #fff; background: #0e0b20; }
+    .commercial-sticky { position: sticky; top: 0; height: 100vh; min-height: 650px; display: grid; place-items: center; overflow: hidden; background:
+      radial-gradient(circle at 50% 48%, #4c3b86 0, #241b49 28%, #0e0b20 67%); }
+    .commercial-sticky::before { content:""; position:absolute; inset:-30%;
+      background: conic-gradient(from 0deg, transparent 0 32%, #ffd24d16 38%, transparent 44% 68%, #aa8cf51c 75%, transparent 82%);
+      animation: commercialSpin 22s linear infinite; }
+    .commercial-sticky::after { content:""; position:absolute; width:70vw; height:70vw; max-width:900px; max-height:900px;
+      border:1px solid #ffffff18; border-radius:50%; box-shadow:0 0 100px #ffd24d12, inset 0 0 100px #aa8cf512; }
+    .commercial-grid { position:relative; z-index:2; width:min(1000px, calc(100% - 48px)); text-align:center; }
+    .commercial-kicker { display:inline-flex; align-items:center; gap:9px; padding:9px 14px; border:1px solid #ffffff35;
+      border-radius:999px; color:#ddd5f6; background:#ffffff0b; font-size:.72rem; font-weight:900; letter-spacing:.14em; text-transform:uppercase; backdrop-filter:blur(10px); }
+    .commercial-kicker i { width:7px; height:7px; border-radius:50%; background:var(--gold); box-shadow:0 0 18px var(--gold); }
+    .commercial h2 { margin:22px auto 12px; max-width:850px; font-family:var(--serif); font-size:clamp(3.2rem, 8vw, 7.6rem);
+      font-weight:500; line-height:.88; letter-spacing:-.085em; }
+    .commercial h2 em { color:var(--gold); font-style:italic; }
+    .commercial-lead { max-width:600px; margin:0 auto; color:#d9d2ed; font-size:clamp(1rem, 1.7vw, 1.2rem); line-height:1.55; }
+    .price-stage { position:relative; height:330px; display:grid; place-items:center; margin:10px auto 0; }
+    .price-glow { position:absolute; width:330px; height:330px; border-radius:50%; background:#ffd24d16; filter:blur(20px); transform:scale(.5); transition:transform .9s, opacity .9s; }
+    .price-old { position:absolute; top:17px; color:#a9a0c3; font-size:1.05rem; font-weight:800; opacity:0; transform:translateY(15px); transition:opacity .5s, transform .5s; }
+    .price-old span { text-decoration:line-through; text-decoration-thickness:2px; }
+    .price-now { position:relative; display:flex; align-items:baseline; justify-content:center; gap:8px; font-family:var(--serif);
+      font-size:clamp(6rem, 18vw, 12.5rem); line-height:.8; letter-spacing:-.1em; opacity:.12; transform:scale(.76) translateY(22px);
+      filter:blur(7px); transition:opacity .75s, transform 1s cubic-bezier(.15,.8,.15,1), filter .75s; }
+    .price-now .currency { font-family:var(--sans); font-size:.32em; font-weight:900; letter-spacing:-.04em; }
+    .price-now .digits { color:#fff; text-shadow:0 0 45px #ffd24d55; }
+    .price-now .unit { margin-left:2px; color:#ffd24d; font-family:var(--sans); font-size:.17em; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+    .price-copy { min-height:32px; color:#bfb6d9; font-size:.78rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; opacity:0; transform:translateY(8px); transition:.5s; }
+    .price-copy strong { color:#ffd24d; }
+    .commercial-actions { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:18px; opacity:0; transform:translateY(18px); transition:.6s; }
+    .commercial-actions .button { min-width:185px; }
+    .commercial-progress { display:flex; justify-content:center; gap:8px; margin-top:22px; }
+    .commercial-progress span { width:34px; height:3px; border-radius:99px; background:#ffffff2b; transition:.4s; }
+    .commercial-progress span.on { width:52px; background:var(--gold); box-shadow:0 0 15px #ffd24d77; }
+    .commercial[data-stage="1"] .price-old,
+    .commercial[data-stage="2"] .price-old,
+    .commercial[data-stage="3"] .price-old,
+    .commercial[data-stage="4"] .price-old { opacity:1; transform:none; }
+    .commercial[data-stage="1"] .price-old span::after { content:""; }
+    .commercial[data-stage="2"] .price-old span { color:#827994; }
+    .commercial[data-stage="3"] .price-old span { color:#827994; }
+    .commercial[data-stage="4"] .price-old span { color:#827994; }
+
+    .commercial[data-stage="4"] .price-glow { opacity:1; transform:scale(1.15); animation:pricePulse 1.8s ease-in-out infinite; }
+    .commercial[data-stage="4"] .price-copy,
+    .commercial[data-stage="4"] .commercial-actions { opacity:1; transform:none; }
+    @keyframes commercialSpin { to { transform:rotate(360deg); } }
+    @keyframes pricePulse { 50% { opacity:.65; transform:scale(1.28); } }
+    @media (max-width:820px) {
+      .commercial { min-height:100vh; }
+      .commercial-sticky { min-height:680px; }
+      .commercial-grid { width:min(100% - 30px, 650px); }
+      .price-stage { height:285px; }
+      .price-glow { width:260px; height:260px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .commercial-sticky::before { animation:none; }
+      .commercial[data-stage="4"] .price-glow { animation:none; }
+    }
+
+
+    .commercial-sticky { cursor: default; }
+
+    /* Cinematic price flash system */
+    .price-stage::before,
+    .price-stage::after {
+      content: "";
+      position: absolute;
+      z-index: 2;
+      left: 50%;
+      top: 50%;
+      width: 4px;
+      height: 480px;
+      pointer-events: none;
+      opacity: 0;
+      background: linear-gradient(to bottom, transparent, #fff8d8 42%, #ffd24d 50%, transparent 58%);
+      filter: blur(3px);
+      transform: translate(-50%, -50%) rotate(68deg) scaleY(.2);
+      mix-blend-mode: screen;
+    }
+
+    .price-stage::after {
+      transform: translate(-50%, -50%) rotate(-68deg) scaleY(.2);
+      background: linear-gradient(to bottom, transparent, #fff 42%, #ffd24d 50%, transparent 58%);
+    }
+
+    .price-flare {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      top: 50%;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      background: #fff;
+      box-shadow:
+        0 0 12px 5px #fff,
+        0 0 35px 15px #ffd24d,
+        0 0 80px 30px #ffd24d99;
+      transform: translate(-50%, -50%) scale(.2);
+      mix-blend-mode: screen;
+    }
+
+    .commercial.sticky-playing .price-stage::before {
+      animation: cinematicBeam 1.15s 3.82s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .commercial.sticky-playing .price-stage::after {
+      animation: cinematicBeam 1.15s 3.94s cubic-bezier(.2,.8,.2,1) both;
+    }
+
+    .commercial.sticky-playing .price-flare {
+      animation: cinematicFlare 1.25s 3.82s cubic-bezier(.12,.8,.18,1) both;
+    }
+
+    .commercial.sticky-playing .price-now .digits {
+      animation: priceImpact .9s 4.02s cubic-bezier(.15,.8,.15,1) both;
+    }
+
+    @keyframes cinematicBeam {
+      0% { opacity: 0; transform: translate(-50%, -50%) rotate(68deg) scaleY(.05); }
+      25% { opacity: .9; }
+      55% { opacity: .55; }
+      100% { opacity: 0; transform: translate(-50%, -50%) rotate(68deg) scaleY(1.7); }
+    }
+
+    @keyframes cinematicFlare {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(.15); }
+      20% { opacity: 1; transform: translate(-50%, -50%) scale(2.7); }
+      38% { opacity: .9; transform: translate(-50%, -50%) scale(1.4); }
+      100% { opacity: 0; transform: translate(-50%, -50%) scale(8); }
+    }
+
+    @keyframes priceImpact {
+      0% { text-shadow: 0 0 0 transparent; transform:scale(1); }
+      18% { text-shadow: 0 0 80px #fff, 0 0 130px #ffd24d, 0 0 200px #ffd24d99; transform:scale(1.13); }
+      42% { text-shadow: 0 0 45px #fff, 0 0 90px #ffd24d; transform:scale(1.045); }
+      100% { text-shadow: 0 0 28px #ffd24d66; transform:scale(1); }
+    }
+
+    .commercial-final-flash {
+      animation: none;
+    }
+
+    .commercial[data-stage="4"] .commercial-final-flash {
+      animation: finalCinematicFlash .8s 0s ease-out both;
+    }
+
+    @keyframes finalCinematicFlash {
+      0% { opacity: .7; }
+      18% { opacity: .18; }
+      100% { opacity: 0; }
+    }
+
+    /* Tiny floating lens-flare particles */
+    .price-stage .lens-dot {
+      position:absolute;
+      z-index:4;
+      width:4px;
+      height:4px;
+      border-radius:50%;
+      background:#fff;
+      box-shadow:0 0 12px 4px #ffd24d;
+      opacity:0;
+      pointer-events:none;
+    }
+    .commercial.sticky-playing .lens-dot:nth-of-type(1) { animation: lensLeft 1.3s 3.65s ease-out both; }
+    .commercial.sticky-playing .lens-dot:nth-of-type(2) { animation: lensRight 1.2s 3.8s ease-out both; }
+
+    @keyframes lensLeft {
+      0% { opacity:0; transform:translate(-20px,25px) scale(.4); }
+      20% { opacity:1; }
+      100% { opacity:0; transform:translate(-230px,-80px) scale(1.4); }
+    }
+    @keyframes lensRight {
+      0% { opacity:0; transform:translate(15px,-20px) scale(.4); }
+      20% { opacity:1; }
+      100% { opacity:0; transform:translate(250px,70px) scale(1.1); }
+    }
+
+    .commercial.sticky-playing .commercial-grid { animation: commercialBreath 5s ease-in-out both; }
+    .commercial.sticky-playing .commercial-kicker { animation: kickerFlash 5s ease-in-out both; }
+    .commercial.sticky-playing .price-now { animation: priceReveal 5s cubic-bezier(.2,.75,.15,1) both; }
+    .commercial.sticky-playing .price-old { animation: oldPriceReveal 5s ease-in-out both; }
+    .commercial.sticky-playing .price-copy { animation: copyReveal 5s ease-out 4.55s both; }
+    .commercial.sticky-playing .commercial-actions { animation: copyReveal 5s ease-out 4.65s both; }
+    .commercial.sticky-playing .price-glow { animation: glowReveal 5s ease-in-out both; }
+    .commercial.sticky-playing .commercial-progress span:nth-child(1) { animation: stepLight .55s .65s both; }
+    .commercial.sticky-playing .commercial-progress span:nth-child(2) { animation: stepLight .55s 1.75s both; }
+    .commercial.sticky-playing .commercial-progress span:nth-child(3) { animation: stepLight .55s 2.85s both; }
+    .commercial.sticky-playing .commercial-progress span:nth-child(4) { animation: stepLight .9s 4.05s both; }
+    .drumroll { position:absolute; z-index:5; left:50%; top:calc(50% + 155px); transform:translateX(-50%);
+      color:#c5bbdd; font-size:.68rem; font-weight:900; letter-spacing:.16em; text-transform:uppercase; opacity:0; }
+    .commercial.sticky-playing .drumroll { animation: drumText 5s ease both; }
+    .commercial-final-flash { position:absolute; inset:0; z-index:4; pointer-events:none; background:#fff;
+      opacity:0; mix-blend-mode:screen; }
+    .commercial[data-stage="4"] .commercial-final-flash { animation: finalFlash .65s ease-out both; }
+    @keyframes commercialBreath { 0%,100% { transform:scale(.98); } 55% { transform:scale(1.01); } }
+    @keyframes kickerFlash { 0%,100% { opacity:.8; } 50% { opacity:1; } }
+    @keyframes priceReveal {
+      0% { opacity:.12; filter:blur(10px); transform:scale(.70) translateY(35px); }
+      17% { opacity:.32; filter:blur(4px); transform:scale(.78) translateY(25px); }
+      38% { opacity:.58; filter:blur(1.5px); transform:scale(.87) translateY(14px); }
+      57% { opacity:.78; filter:blur(.5px); transform:scale(.94) translateY(7px); }
+      72% { opacity:.28; filter:blur(4px); transform:scale(.90) translateY(9px); }
+      79% { opacity:.92; filter:blur(0); transform:scale(1.03) translateY(0); }
+      88%,100% { opacity:1; filter:blur(0); transform:scale(1) translateY(0); }
+    }
+    @keyframes oldPriceReveal {
+      0%,16% { opacity:0; transform:translateY(12px); }
+      20%,70% { opacity:1; transform:none; }
+      74%,100% { opacity:.7; transform:none; }
+    }
+    @keyframes glowReveal {
+      0%,55% { opacity:.2; transform:scale(.55); }
+      70% { opacity:.35; transform:scale(.82); }
+      78% { opacity:.75; transform:scale(1.15); }
+      100% { opacity:1; transform:scale(1.18); }
+    }
+    @keyframes stepLight {
+      0% { background:#ffffff2b; transform:scaleX(.65); }
+      40%,100% { background:var(--gold); transform:scaleX(1); box-shadow:0 0 14px #ffd24d77; }
+    }
+    @keyframes drumText {
+      0% { opacity:0; }
+      12%,65% { opacity:1; }
+      82% { opacity:.5; }
+      100% { opacity:0; }
+    }
+    @keyframes copyReveal { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+    @keyframes finalFlash { 0% { opacity:.28; } 100% { opacity:0; } }
+    @media (max-width:820px) {
+      .drumroll { top:calc(50% + 140px); }
+    }
+
+    @media (max-width: 820px) {
+      .nav-links { display: none; } .hero { min-height: 915px; padding-top: 122px; }
+      .hero-grid, .intro-grid, .demo-shell, .contact-grid { grid-template-columns: 1fr; }
+      .hero-grid { text-align: center; } .hero-copy, .hero-footnote { margin-left: auto; margin-right: auto; } .hero-cta { justify-content: center; }
+      .scene { height: 420px; margin-top: -5px; } .scroll-hint { display: none; }
+      .sun-window { display: none; } .intro-grid { gap: 32px; }
+      .guard-rail { grid-template-columns: 1fr; } .rail-card { min-height: 180px; } .rail-card h3 { margin-top: 22px; }
+      .demo-heading { display: block; } .demo-heading p { margin-top: 15px; } .customizer { border-right: 0; border-bottom: 1.5px solid #5b4e72; } .simulator { min-height: 540px; }
+      .contact-grid { gap: 35px; } .contact-form { border-radius: 23px 23px 0 0; }
+      .evolution { height: 190vh; } .evolution-grid { grid-template-columns: 1fr; gap: 0; } .evolution-copy { padding-top: 68px; } .evolution-copy p { min-height: 45px; } .evolution-figure { height: 430px; margin-top: -10px; } .evolution-tag { bottom: 0; }
+    }
+    @media (max-width: 500px) { .shell { width: min(100% - 30px, 540px); } nav { padding-top: 17px; } .sound-button { font-size: 0; min-width: 38px; padding: 10px; justify-content: center; } .scene { transform: scale(.8); margin: -30px -10% -45px; } .hero { min-height: 810px; } .evolution-copy { padding-top: 52px; } .evolution-figure { transform: scale(.82); margin: -25px -10% 0; } .demo-box { transform: rotateX(54deg) rotateZ(-18deg) scale(.88); margin-top: -20px; } .sim-buttons { flex-wrap: wrap; justify-content: center; } .footer { align-items: start; flex-direction: column; } }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+  
+    /* PillMate hero orbit: replace decorative gems with medicine capsules */
+    .gem {
+      width: 72px !important;
+      height: 32px !important;
+      border-radius: 999px !important;
+      border: 1px solid rgba(255,255,255,.75) !important;
+      background: linear-gradient(90deg, var(--pill-a), var(--pill-b)) !important;
+      box-shadow: inset 4px 4px 7px rgba(255,255,255,.45),
+                  inset -5px -4px 8px rgba(0,0,0,.12),
+                  0 0 26px var(--glow) !important;
+      transform: translate(-50%, -50%) translate3d(var(--x), var(--y), var(--z)) rotate(var(--r)) !important;
+    }
+    .gem::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0;
+      width: 1px;
+      height: 100%;
+      background: rgba(32,26,62,.18);
+      transform: translateX(-50%);
+    }
+    .gem::after {
+      width: 11px !important;
+      height: 11px !important;
+      top: 5px !important;
+      left: 10px !important;
+      border-radius: 50% !important;
+      background: rgba(255,255,255,.72) !important;
+      filter: blur(2px) !important;
+    }
+    .g1 { --pill-a:#fff7d0; --pill-b:#ffd24d; }
+    .g2 { --pill-a:#f7fff9; --pill-b:#8be1bd; }
+    .g3 { --pill-a:#fff2fa; --pill-b:#f293d0; }
+    .g4 { --pill-a:#f8f3ff; --pill-b:#ae93fa; }
+    .g5 { --pill-a:#fff4ed; --pill-b:#ffa385; }
+    .g6 { --pill-a:#eef9ff; --pill-b:#81cafa; }
+
+  
+    /* Speculative price movement — cinematic ticker feel */
+    .commercial.sticky-playing .price-now {
+      will-change: transform, filter, opacity;
+    }
+
+    .commercial.sticky-playing .price-now .digits {
+      transition: color .12s ease, text-shadow .12s ease;
+    }
+
+    .commercial[data-stage="2"] .price-now .digits {
+      text-shadow: 0 0 32px #ffd24d66;
+    }
+
+    .commercial[data-stage="3"] .price-now .digits {
+      text-shadow: 0 0 50px #ffd24d88;
+    }
+
+    .commercial[data-stage="4"] .price-now .digits {
+      color: #fff8cf;
+      text-shadow:
+        0 0 25px #fff,
+        0 0 65px #ffd24d,
+        0 0 120px #ffd24d99;
+    }
+
+  
+    /* Persistent final ₹999 shine */
+    .commercial[data-stage="4"] .price-now {
+      color: #fff8cf !important;
+      filter: drop-shadow(0 0 12px #ffd24d)
+              drop-shadow(0 0 30px #ffd24d88)
+              drop-shadow(0 0 60px #ffd24d44) !important;
+    }
+
+    .commercial[data-stage="4"] .price-now .digits {
+      color: #fff4a8 !important;
+      -webkit-text-fill-color: #fff4a8 !important;
+      background: linear-gradient(
+        105deg,
+        #c88d13 0%,
+        #ffd24d 20%,
+        #fffde4 38%,
+        #ffd24d 50%,
+        #fff 54%,
+        #ffd24d 60%,
+        #c88d13 100%
+      ) !important;
+      background-size: 220% 100% !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      text-shadow: none !important;
+      animation: finalNumberShine 2.8s ease-in-out infinite !important;
+    }
+
+    .commercial[data-stage="4"] .price-now::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: -35% -22%;
+      border-radius: 50%;
+      background: radial-gradient(
+        ellipse,
+        #fff7bf 0%,
+        #ffd24d55 15%,
+        #ffd24d18 35%,
+        transparent 68%
+      );
+      filter: blur(18px);
+      animation: finalAura 2.8s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .commercial[data-stage="4"] .price-now::after {
+      content: "";
+      position: absolute;
+      z-index: 3;
+      top: -35%;
+      bottom: -35%;
+      left: -30%;
+      width: 18%;
+      transform: rotate(15deg);
+      background: linear-gradient(
+        90deg,
+        transparent,
+        #ffffff,
+        #fff7bd,
+        transparent
+      );
+      filter: blur(5px);
+      opacity: 0;
+      pointer-events: none;
+      animation: finalSweep 3.8s 1s ease-in-out infinite;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes finalNumberShine {
+      0%, 35% { background-position: 115% 0; filter: brightness(1); }
+      52% { background-position: 50% 0; filter: brightness(1.45); }
+      68%, 100% { background-position: -15% 0; filter: brightness(1); }
+    }
+
+    @keyframes finalAura {
+      0%, 100% { opacity: .35; transform: scale(.94); }
+      50% { opacity: .75; transform: scale(1.08); }
+    }
+
+    @keyframes finalSweep {
+      0%, 35% { left: -30%; opacity: 0; }
+      45% { opacity: .85; }
+      62% { left: 112%; opacity: 0; }
+      100% { left: 112%; opacity: 0; }
+    }
+
+  
+    /* Brighter grand-finale ₹999 */
+    .commercial[data-stage="4"] .price-now {
+      z-index: 10 !important;
+      transform: scale(1.04) !important;
+      filter:
+        drop-shadow(0 0 10px #fff)
+        drop-shadow(0 0 28px #ffd24d)
+        drop-shadow(0 0 65px #ffd24dcc)
+        drop-shadow(0 0 120px #ffd24d66) !important;
+      animation: finalPriceBreathing 2.2s ease-in-out infinite !important;
+    }
+
+    .commercial[data-stage="4"] .price-now .digits {
+      color: #fffbe0 !important;
+      -webkit-text-fill-color: #fffbe0 !important;
+      background: linear-gradient(
+        105deg,
+        #e0a51b 0%,
+        #ffd84f 13%,
+        #fff 27%,
+        #fffde0 38%,
+        #ffd24d 50%,
+        #fff 62%,
+        #ffd84f 76%,
+        #e0a51b 100%
+      ) !important;
+      background-size: 320% 100% !important;
+      -webkit-background-clip: text !important;
+      background-clip: text !important;
+      text-shadow:
+        0 0 8px #fff,
+        0 0 22px #fff6b0,
+        0 0 48px #ffd24d,
+        0 0 90px #ffd24dcc !important;
+      animation: brilliantNumberShine 2.1s ease-in-out infinite !important;
+    }
+
+    .commercial[data-stage="4"] .price-now::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      inset: -55% -35%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center,
+          #fff 0%,
+          #fff8c7 4%,
+          #ffd24d88 14%,
+          #ffd24d30 32%,
+          transparent 68%);
+      filter: blur(22px);
+      opacity: .95;
+      animation: brilliantAura 2.1s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .commercial[data-stage="4"] .price-now::after {
+      content: "";
+      position: absolute;
+      z-index: 20;
+      top: -55%;
+      bottom: -55%;
+      left: -35%;
+      width: 20%;
+      transform: rotate(16deg);
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        #ffffff22 25%,
+        #fff 45%,
+        #fffde0 50%,
+        #fff 55%,
+        #ffffff22 75%,
+        transparent 100%
+      );
+      filter: blur(4px);
+      opacity: 0;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      animation: brilliantSweep 2.6s 0.45s ease-in-out infinite;
+    }
+
+    @keyframes brilliantNumberShine {
+      0%, 22% {
+        background-position: 125% 0;
+        filter: brightness(1);
+      }
+      43% {
+        background-position: 65% 0;
+        filter: brightness(1.7);
+      }
+      55% {
+        background-position: 28% 0;
+        filter: brightness(1.3);
+      }
+      72%, 100% {
+        background-position: -25% 0;
+        filter: brightness(1);
+      }
+    }
+
+    @keyframes brilliantAura {
+      0%, 100% {
+        opacity: .55;
+        transform: scale(.88);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.18);
+      }
+    }
+
+    @keyframes brilliantSweep {
+      0%, 25% {
+        left: -35%;
+        opacity: 0;
+      }
+      38% {
+        opacity: 1;
+      }
+      55% {
+        left: 112%;
+        opacity: .9;
+      }
+      70%, 100% {
+        left: 112%;
+        opacity: 0;
+      }
+    }
+
+    @keyframes finalPriceBreathing {
+      0%, 100% {
+        transform: scale(1.02);
+      }
+      50% {
+        transform: scale(1.065);
+      }
+    }
+
+  
+    /* FINAL: always-visible, high-contrast ₹999 */
+    .commercial[data-stage="4"] .price-now {
+      position: relative !important;
+      z-index: 20 !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      filter:
+        drop-shadow(0 0 10px rgba(255, 210, 77, .95))
+        drop-shadow(0 0 30px rgba(255, 210, 77, .65)) !important;
+      transform: scale(1) !important;
+      animation: final999Pulse 2.2s ease-in-out infinite !important;
+      overflow: visible !important;
+    }
+
+    .commercial[data-stage="4"] .price-now .digits {
+      display: inline-block !important;
+      position: relative !important;
+      z-index: 30 !important;
+      width: auto !important;
+      min-width: max-content !important;
+      white-space: nowrap !important;
+      color: #fff4a3 !important;
+      -webkit-text-fill-color: #fff4a3 !important;
+      background: none !important;
+      -webkit-background-clip: initial !important;
+      background-clip: initial !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      text-shadow:
+        0 0 4px #ffffff,
+        0 0 14px #fff1a0,
+        0 0 30px #ffd24d,
+        0 0 65px rgba(255, 210, 77, .9) !important;
+      animation: none !important;
+      filter: none !important;
+    }
+
+    .commercial[data-stage="4"] .price-now .currency {
+      color: #fff !important;
+      -webkit-text-fill-color: #fff !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      text-shadow: 0 0 18px #ffd24d !important;
+    }
+
+    .commercial[data-stage="4"] .price-now .unit {
+      color: #ffd24d !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      text-shadow: 0 0 18px #ffd24d !important;
+    }
+
+    .commercial[data-stage="4"] .price-now::before {
+      content: "" !important;
+      position: absolute !important;
+      z-index: -1 !important;
+      left: 50% !important;
+      top: 50% !important;
+      width: 125% !important;
+      height: 155% !important;
+      transform: translate(-50%, -50%) !important;
+      border-radius: 50% !important;
+      background: radial-gradient(
+        ellipse,
+        rgba(255, 248, 190, .8) 0%,
+        rgba(255, 210, 77, .42) 22%,
+        rgba(255, 210, 77, .14) 45%,
+        transparent 72%
+      ) !important;
+      filter: blur(18px) !important;
+      opacity: .8 !important;
+      animation: final999Aura 2.2s ease-in-out infinite !important;
+      pointer-events: none !important;
+    }
+
+    .commercial[data-stage="4"] .price-now::after {
+      display: none !important;
+    }
+
+    @keyframes final999Pulse {
+      0%, 100% {
+        filter:
+          drop-shadow(0 0 10px rgba(255, 210, 77, .9))
+          drop-shadow(0 0 28px rgba(255, 210, 77, .55));
+      }
+      50% {
+        filter:
+          drop-shadow(0 0 18px rgba(255, 255, 220, 1))
+          drop-shadow(0 0 45px rgba(255, 210, 77, .9))
+          drop-shadow(0 0 80px rgba(255, 210, 77, .5));
+      }
+    }
+
+    @keyframes final999Aura {
+      0%, 100% { opacity: .55; transform: translate(-50%, -50%) scale(.92); }
+      50% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+    }
+
+  </style>
+</head>
+<body>
+  <a class="access-skip" href="#main">Skip to content</a>
+  <div class="nav-wrap"><nav class="shell">
+    <a class="logo" href="#top" aria-label="PillMate home"><span class="logo-mark"></span>PillMate</a>
+    <div class="nav-links"><a href="#how">How it works</a><a href="#demo">Try PillMate</a><a href="#offer">Get PillMate</a><a href="#contact">Contact</a></div>
+    <button class="sound-button" id="globalSound" type="button" aria-label="Play a gentle PillMate chime"><span class="sound-dot"></span>sound on</button>
+  </nav></div>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="shell hero-grid">
+        <div class="scroll-in show">
+          <span class="kicker"><i></i> a gentler way to stay on time</span>
+          <h1>Every dose,<br>right in its <em>light.</em></h1>
+          <p class="hero-copy">PillMate is a thoughtful pillbox that opens the right compartment at the right time—then gently keeps calling until the medicine is taken.</p>
+          <div class="hero-cta"><a class="button primary" href="#demo">Try the PillMate moment <span>↓</span></a><a class="button ghost" href="#how">See how it helps</a></div>
+          <p class="hero-footnote">Designed for older adults and the people who care for them.</p>
+        </div>
+        <div class="scene" aria-label="A glowing PillMate pillbox surrounded by floating medicine capsules">
+          <div class="orbit one"></div><div class="orbit two"></div><div class="orbit three"></div>
+          <span class="gem g1"></span><span class="gem g2"></span><span class="gem g3"></span><span class="gem g4"></span><span class="gem g5"></span><span class="gem g6"></span>
+          <div class="pillbox-3d"><div class="box-side"></div><div class="box-top">
+            <span class="compartment" style="--pill-color:#f78a74"></span><span class="compartment" style="--pill-color:#ffd35c"></span><span class="compartment" style="--pill-color:#f78a74"></span>
+            <span class="compartment" style="--pill-color:#ffd35c"></span><span class="compartment" style="--pill-color:#f78a74"></span><span class="compartment" style="--pill-color:#ffd35c"></span>
+            <span class="compartment" style="--pill-color:#f78a74"></span><span class="compartment" style="--pill-color:#ffd35c"></span><span class="compartment" style="--pill-color:#f78a74"></span>
+          </div><span class="box-light"></span></div>
+          <span class="scene-caption">A small light. A big reassurance.</span>
+        </div>
+      </div>
+      <div class="scroll-hint">scroll to discover <span></span></div>
+    </section>
+
+    <section class="evolution" id="evolution" aria-label="PillMate pillbox transformation">
+      <div class="evolution-sticky">
+        <div class="shell evolution-grid">
+          <div class="evolution-copy">
+            <div class="eyebrow">Scroll to build PillMate</div>
+            <h2 id="evolutionTitle">It starts<br>as a <em>simple box.</em></h2>
+            <p id="evolutionText">A quiet object. No decisions to make yet.</p>
+            <div class="evolution-meter" aria-hidden="true"><span class="on"></span><span></span><span></span><span></span></div>
+          </div>
+          <div class="evolution-figure" aria-label="Pillbox transforms while the page scrolls">
+            <div class="evolution-aura"></div><div class="evolution-aura two"></div>
+            <div class="evolution-box" id="evolutionBox">
+              <span class="evolution-slot"></span><span class="evolution-slot"></span><span class="evolution-slot"></span>
+              <span class="evolution-slot"></span><span class="evolution-slot"></span><span class="evolution-slot"></span>
+              <span class="evolution-slot"></span><span class="evolution-slot"></span><span class="evolution-slot"></span>
+              <span class="evolution-solid"></span><span class="evolution-light"></span>
+            </div>
+            <span class="evolution-tag" id="evolutionTag">01 — The beginning</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="intro" id="how">
+      <div class="shell intro-grid">
+        <div class="sun-window scroll-in" aria-hidden="true"><div class="mini-box"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div></div>
+        <div class="scroll-in">
+          <div class="eyebrow">What PillMate does</div>
+          <h2>A familiar routine, made <em>visible.</em></h2>
+          <p class="intro-copy">Set the schedule once. At each chosen time, PillMate lights up, opens the matching compartment and plays a clear reminder. No hunting through pills. No guessing what comes next.</p>
+          <div class="promise-list">
+            <div class="promise"><div class="promise-icon">◷</div><div><strong>Your schedule, your rhythm</strong><span>Set the times that fit a person’s real day—not a generic routine.</span></div></div>
+            <div class="promise"><div class="promise-icon">☼</div><div><strong>One compartment at a time</strong><span>The right dose is brought forward at the right moment, simply and clearly.</span></div></div>
+            <div class="promise"><div class="promise-icon">♬</div><div><strong>A gentle reminder that stays</strong><span>A light and audible signal continues until the moment is acknowledged.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="error">
+      <div class="shell">
+        <div class="scroll-in"><div class="eyebrow">Built for fewer mix-ups</div><h2>Less guesswork.<br>More <em>peace of mind.</em></h2><p class="error-lead">In a busy old-age home, routines deserve backup. PillMate creates a clear, repeatable cue for every scheduled dose—helping residents and caregivers move through the day with more confidence.</p></div>
+        <div class="guard-rail scroll-in">
+          <article class="rail-card"><span class="rail-num">01</span><h3>Clear cue</h3><p>The device makes the moment obvious through light, an opening compartment, and a persistent sound.</p></article>
+          <article class="rail-card"><span class="rail-num">02</span><h3>Focused dose</h3><p>Only the scheduled space is highlighted, helping make a multi-medicine routine feel less overwhelming.</p></article>
+          <article class="rail-card"><span class="rail-num">03</span><h3>Shared calm</h3><p>Residents retain a sense of independence, while helpers have a consistent physical prompt to rely on.</p></article>
+        </div>
+        <p class="not-a-promise scroll-in">PillMate is designed to support medication routines and should be used alongside professional care guidance and the instructions provided for each medicine.</p>
+      </div>
+    </section>
+
+    <section class="demo" id="demo">
+      <div class="shell"><div class="demo-heading scroll-in"><div><div class="eyebrow">The PillMate moment</div><h2>Set it. Hear it.<br>See it <em>open.</em></h2></div><p>Create a tiny reminder below, then let PillMate show you what a scheduled moment feels like.</p></div>
+        <div class="demo-shell scroll-in">
+          <div class="customizer"><div class="step-label">your small setup</div><h3>Make it yours.</h3>
+            <div class="field"><label for="reminderTime">Reminder time <span>choose any time</span></label><input class="time-input" id="reminderTime" type="time" value="08:30" /></div>
+            <div class="field"><label>What is in today’s dose? <span>pick one</span></label><div class="pill-options" id="pillOptions">
+              <button class="pill-option active" data-pill="Morning tablet" type="button">☀ Morning tablet</button><button class="pill-option" data-pill="Heart medicine" type="button">♥ Heart medicine</button><button class="pill-option" data-pill="Vitamin D" type="button">✦ Vitamin D</button><button class="pill-option" data-pill="Evening capsule" type="button">☾ Evening capsule</button>
+            </div></div>
+            <div class="field"><label for="volume">Reminder strength <span id="volumeLabel">gentle</span></label><input class="slider" id="volume" type="range" min="1" max="3" value="1" /></div>
+            <div class="hint-card"><b>✦</b><span>Tip: sound only plays when you press the test button, so you are always in control.</span></div>
+          </div>
+          <div class="simulator" id="simulator">
+            <span class="sim-time" id="simTime">08:30</span><span class="wave"></span><span class="wave w2"></span><span class="wave w3"></span>
+            <div class="demo-box" id="demoBox" aria-label="PillMate sample pillbox"><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span><span class="slot"></span></div>
+            <div class="alarm-copy"><span class="status" id="alarmStatus">PillMate is ready when you are</span><strong id="alarmText">Set a moment to test it.</strong></div>
+            <div class="sim-buttons"><button class="take" id="testAlarm" type="button">Test PillMate ✦</button><button id="takeDose" type="button" disabled>I took it</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="commercial" id="offer" data-stage="0" aria-label="PillMate commercial offer">
+      <div class="commercial-sticky">
+        <div class="commercial-final-flash"></div><div class="commercial-grid">
+          <span class="commercial-kicker"><i></i> A better routine, at a better price</span>
+          <h2>Less than you<br><em>expected.</em></h2>
+          <p class="commercial-lead">We wanted PillMate to feel thoughtfully designed without making it feel out of reach. Scroll to see where the price lands.</p>
+
+          <div class="price-stage" aria-live="polite">
+            <span class="price-flare"></span><span class="lens-dot"></span><span class="lens-dot"></span>
+            <div class="price-glow"></div>
+            <div class="price-old">From <span id="priceOld">₹10,000</span></div>
+            <div class="price-now">
+              <span class="currency">₹</span><span class="digits" id="priceDigits">10,000</span><span class="unit">only</span>
+            </div>
+          </div>
+
+          <div class="price-copy" id="priceCopy">The final reveal: <strong>₹999</strong> for PillMate.</div>
+          <div class="commercial-actions">
+            <a class="button primary" href="#contact">I want PillMate <span>↗</span></a>
+            <a class="button ghost" href="#demo">See it in action <span>↓</span></a>
+          </div>
+          <div class="drumroll" id="drumrollText">wait for it…</div>
+          <div class="commercial-progress" aria-hidden="true">
+            <span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact" id="contact">
+      <div class="shell contact-grid">
+        <div class="scroll-in"><div class="eyebrow">Let’s bring calm to the routine</div><h2>Meet PillMate<br>in <em>person.</em></h2><p class="contact-lead">Are you exploring a more thoughtful medication routine for your old-age home? Tell us a little about your space and we’ll be in touch.</p><p class="contact-details">A student-built concept for kinder, clearer care.<br><span id="emailDisplay">Project email to be added</span></p></div>
+        <form class="contact-form scroll-in" id="contactForm" action="https://formspree.io/f/mdeoljdy" method="POST"><input type="hidden" name="_subject" value="New PillMate enquiry" /><label for="name">Your name</label><input id="name" name="name" autocomplete="name" required placeholder="Your name" />
+          <label for="email">Email address</label><input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com" />
+          <label for="message">What would you like to know?</label><textarea id="message" name="message" required placeholder="Tell us about your care home or question..."></textarea>
+          <button class="button primary" type="submit">Start a conversation <span>↗</span></button><p class="form-note">Your message goes securely to the PillMate team.</p>
+        </form>
+      </div>
+      <footer class="shell footer"><a class="logo" href="#top"><span class="logo-mark"></span>PillMate</a><span>© 2026 PillMate — a little light, right on time.</span></footer>
+    </section>
+  </main>
+
+  <script>
+    // Project enquiries are addressed to the PillMate team.
+    const projectEmail = 'project.pillmate.lights@gmail.com';
+    const emailDisplay = document.getElementById('emailDisplay');
+    if (!projectEmail.includes('YOUR_GMAIL')) emailDisplay.textContent = projectEmail;
+
+    let selectedPill = 'Morning tablet';
+    let alarmTimer;
+    const timeInput = document.getElementById('reminderTime');
+    const simTime = document.getElementById('simTime');
+    const volume = document.getElementById('volume');
+    const volumeLabel = document.getElementById('volumeLabel');
+    const testButton = document.getElementById('testAlarm');
+    const takeButton = document.getElementById('takeDose');
+    const simulator = document.getElementById('simulator');
+    const demoBox = document.getElementById('demoBox');
+    const slots = [...document.querySelectorAll('.slot')];
+    const alarmStatus = document.getElementById('alarmStatus');
+    const alarmText = document.getElementById('alarmText');
+    const gentleNames = ['gentle', 'clear', 'strong'];
+
+    function playChime(level = 1) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+      [523.25, 659.25, 783.99].forEach((freq, index) => {
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = freq;
+        gain.gain.setValueAtTime(0.0001, now + index * .11);
+        gain.gain.exponentialRampToValueAtTime(.035 * level, now + index * .11 + .025);
+        gain.gain.exponentialRampToValueAtTime(.0001, now + index * .11 + .55);
+        oscillator.connect(gain).connect(ctx.destination);
+        oscillator.start(now + index * .11); oscillator.stop(now + index * .11 + .58);
+      });
+      setTimeout(() => ctx.close(), 1200);
+    }
+
+    function setTime() { simTime.textContent = timeInput.value || '08:30'; }
+    function setVolume() { volumeLabel.textContent = gentleNames[Number(volume.value) - 1]; }
+    timeInput.addEventListener('input', setTime); volume.addEventListener('input', setVolume);
+    document.getElementById('pillOptions').addEventListener('click', event => {
+      const button = event.target.closest('.pill-option'); if (!button) return;
+      document.querySelectorAll('.pill-option').forEach(item => item.classList.remove('active'));
+      button.classList.add('active'); selectedPill = button.dataset.pill;
+      if (!simulator.classList.contains('ringing')) alarmText.textContent = `Ready for ${selectedPill.toLowerCase()}.`;
+    });
+
+    function startAlarm() {
+      clearTimeout(alarmTimer);
+      const selectedSlot = slots[4];
+      simulator.classList.add('ringing'); demoBox.classList.add('alarm'); selectedSlot.classList.add('active');
+      alarmStatus.textContent = 'Time for your dose'; alarmText.textContent = selectedPill;
+      testButton.textContent = 'PillMate is calling...'; testButton.disabled = true; takeButton.disabled = false;
+      playChime(Number(volume.value));
+      alarmTimer = setTimeout(() => { if (simulator.classList.contains('ringing')) playChime(Number(volume.value)); }, 1500);
+    }
+    function takeDose() {
+      clearTimeout(alarmTimer); simulator.classList.remove('ringing'); demoBox.classList.remove('alarm');
+      const selectedSlot = slots[4]; selectedSlot.classList.remove('active'); selectedSlot.classList.add('open');
+      alarmStatus.textContent = 'Moment complete'; alarmText.textContent = 'Beautiful. See you at the next dose.';
+      testButton.textContent = 'Test another moment'; testButton.disabled = false; takeButton.disabled = true;
+      setTimeout(() => selectedSlot.classList.remove('open'), 1900);
+    }
+    testButton.addEventListener('click', startAlarm); takeButton.addEventListener('click', takeDose);
+    document.getElementById('globalSound').addEventListener('click', () => playChime(1));
+
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('show'); }), { threshold: .12 });
+    document.querySelectorAll('.scroll-in').forEach(item => observer.observe(item));
+    document.querySelector('.scene').addEventListener('pointermove', event => {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const x = (event.clientX - rect.left) / rect.width - .5; const y = (event.clientY - rect.top) / rect.height - .5;
+      document.querySelector('.pillbox-3d').style.transform = `translate(-50%, -50%) rotateX(${55 - y * 12}deg) rotateZ(${-28 + x * 13}deg)`;
+    });
+    document.querySelector('.scene').addEventListener('pointerleave', () => document.querySelector('.pillbox-3d').style.transform = 'translate(-50%, -50%) rotateX(55deg) rotateZ(-28deg)');
+
+    const evolution = document.getElementById('evolution');
+    const evolutionTitle = document.getElementById('evolutionTitle');
+    const evolutionText = document.getElementById('evolutionText');
+    const evolutionTag = document.getElementById('evolutionTag');
+    const evolutionSlots = [...document.querySelectorAll('.evolution-slot')];
+    const evolutionMeter = [...document.querySelectorAll('.evolution-meter span')];
+    const evolutionStages = [
+      { title: 'It starts<br>as a <em>simple box.</em>', text: 'A quiet object. No decisions to make yet.', tag: '01 — The beginning' },
+      { title: 'Then the shape<br>gets <em>purpose.</em>', text: 'The surface opens into places for a calmer, more familiar routine.', tag: '02 — Space for every dose' },
+      { title: 'Nine places.<br>One <em>clear path.</em>', text: 'Each compartment makes the next step easier to see and trust.', tag: '03 — The rhythm appears' },
+      { title: 'Meet the <em>light</em><br>that keeps time.', text: 'PillMate becomes a pillbox made to gently call the right dose forward.', tag: '04 — PillMate, ready on time' }
+    ];
+    let activeEvolutionStage = -1;
+    let evolutionFrame;
+    function updateEvolution() {
+      evolutionFrame = undefined;
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+      const rect = evolution.getBoundingClientRect();
+      const distance = Math.max(1, rect.height - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, -rect.top / distance));
+      const partProgress = Math.min(1, Math.max(0, (progress - .16) / .67));
+      evolution.style.setProperty('--simple-opacity', String(1 - Math.min(1, progress * 1.7)));
+      evolution.style.setProperty('--parts-opacity', String(partProgress));
+      evolution.style.setProperty('--grid-gap', `${5 + partProgress * 8}px`);
+      evolution.style.setProperty('--box-scale', String(.78 + progress * .22));
+      evolution.style.setProperty('--box-tilt', `${progress * 13}deg`);
+      evolution.style.setProperty('--slot-a', `${-partProgress * 10}px`);
+      evolution.style.setProperty('--slot-b', `${partProgress * 7}px`);
+      evolution.style.setProperty('--slot-c', `${-partProgress * 5}px`);
+      const stage = progress < .23 ? 0 : progress < .5 ? 1 : progress < .77 ? 2 : 3;
+      if (stage !== activeEvolutionStage) {
+        activeEvolutionStage = stage;
+        evolutionTitle.innerHTML = evolutionStages[stage].title;
+        evolutionText.textContent = evolutionStages[stage].text;
+        evolutionTag.textContent = evolutionStages[stage].tag;
+        evolutionMeter.forEach((bar, index) => bar.classList.toggle('on', index <= stage));
+      }
+      evolutionSlots[4].classList.toggle('final', progress > .8);
+    }
+    function scheduleEvolution() { if (!evolutionFrame) evolutionFrame = requestAnimationFrame(updateEvolution); }
+    window.addEventListener('scroll', scheduleEvolution, { passive: true });
+    window.addEventListener('resize', scheduleEvolution);
+    updateEvolution();
+
+
+    // Cinematic speculative 5-second commercial reveal.
+    const commercial = document.getElementById('offer');
+    const priceDigits = document.getElementById('priceDigits');
+    const priceOld = document.getElementById('priceOld');
+    const priceCopy = document.getElementById('priceCopy');
+    const commercialProgress = [...document.querySelectorAll('.commercial-progress span')];
+    const drumrollText = document.getElementById('drumrollText');
+
+    let revealStarted = false;
+    let priceFrame;
+    let revealStartTime = 0;
+
+    // Deliberately non-linear: the number moves up and down before settling.
+    const speculativePrices = [
+      2000, 1849, 2175, 1910, 2260, 1785, 2095, 1640,
+      1950, 1515, 1765, 1385, 1599, 1275, 1450, 1199,
+      1315, 1149, 1210, 1088, 1135, 1049, 1080, 1024,
+      999
+    ];
+
+    function setPrice(value, progress) {
+      priceDigits.textContent = value.toLocaleString('en-IN');
+
+      // Make the progress indicators feel like a tightening drumroll.
+      const activeBars = progress > .78 ? 4 : progress > .5 ? 3 : progress > .24 ? 2 : 1;
+      commercialProgress.forEach((bar, i) => bar.classList.toggle('on', i < activeBars));
+
+      if (progress < .18) {
+        priceOld.innerHTML = 'Starting point <span>₹2,000</span>';
+        priceCopy.innerHTML = 'Let’s see where the price lands.';
+      } else if (progress < .58) {
+        priceOld.innerHTML = 'The price is moving…';
+        priceCopy.innerHTML = 'Up. Down. Closer. Keep watching.';
+      } else if (progress < .88) {
+        priceOld.innerHTML = 'Getting closer';
+        priceCopy.innerHTML = 'The number is narrowing in.';
+      } else {
+        priceOld.innerHTML = 'One final move';
+        priceCopy.innerHTML = 'The grand reveal is almost here.';
+      }
+
+      if (value === 999) {
+        priceOld.innerHTML = 'The final price';
+        priceCopy.innerHTML = 'PillMate — <strong>₹999</strong>.';
+        drumrollText.textContent = 'the grand reveal';
+        commercial.dataset.stage = '4';
+
+        priceDigits.animate(
+          [
+            { transform: 'scale(.92)', filter: 'blur(3px)' },
+            { transform: 'scale(1.14)', filter: 'blur(0)', textShadow: '0 0 70px #fff, 0 0 130px #ffd24d' },
+            { transform: 'scale(1)', filter: 'blur(0)' }
+          ],
+          { duration: 900, easing: 'cubic-bezier(.15,.8,.15,1)', fill: 'both' }
+        );
+        return;
+      }
+
+      commercial.dataset.stage = progress < .58 ? '2' : progress < .88 ? '3' : '4';
+    }
+
+    function animatePrice(now) {
+      const elapsed = now - revealStartTime;
+      const duration = 5000;
+      const progress = Math.min(1, elapsed / duration);
+
+      // Ease toward the final entries while preserving the speculative jumps.
+      const eased = progress < .84
+        ? progress / .84
+        : .84 + (progress - .84) / .16;
+
+      const index = Math.min(
+        speculativePrices.length - 1,
+        Math.floor(eased * (speculativePrices.length - 1))
+      );
+
+      setPrice(speculativePrices[index], progress);
+
+      if (progress < 1) {
+        priceFrame = requestAnimationFrame(animatePrice);
+      } else {
+        setPrice(999, 1);
+        commercial.classList.remove('sticky-playing');
+      }
+    }
+
+    function startCommercialReveal() {
+      if (revealStarted) return;
+      revealStarted = true;
+      commercial.classList.add('sticky-playing');
+      revealStartTime = performance.now();
+
+      // Start visibly at ₹2,000.
+      setPrice(2000, 0);
+      drumrollText.textContent = '₹2,000';
+
+      priceFrame = requestAnimationFrame(animatePrice);
+    }
+
+    const commercialObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) startCommercialReveal();
+      });
+    }, { threshold: .35 });
+    commercialObserver.observe(commercial);
+
+    setTime(); setVolume();
+  </script>
+</body>
+</html>
