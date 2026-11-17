@@ -591,16 +591,21 @@ declare
   event_row public.refill_alert_events%rowtype;
   attempt_row public.refill_alert_call_attempts%rowtype;
 begin
-  select a, e
-  into attempt_row, event_row
+  select a.*
+  into attempt_row
   from public.refill_alert_call_attempts a
-  join public.refill_alert_events e on e.id = a.refill_alert_event_id
   where a.id = p_attempt_id
-  for update of a, e;
+  for update;
 
   if not found then
     return;
   end if;
+
+  select e.*
+  into event_row
+  from public.refill_alert_events e
+  where e.id = attempt_row.refill_alert_event_id
+  for update;
 
   update public.refill_alert_call_attempts
   set status = 'failed',
@@ -691,17 +696,22 @@ declare
   action_value text := 'none';
   terminal_reason text;
 begin
-  select a, e
-  into attempt_row, event_row
+  select a.*
+  into attempt_row
   from public.refill_alert_call_attempts a
-  join public.refill_alert_events e on e.id = a.refill_alert_event_id
   where a.provider = 'exotel'
     and a.provider_call_id = p_provider_call_id
-  for update of a, e;
+  for update;
 
   if not found then
     return;
   end if;
+
+  select e.*
+  into event_row
+  from public.refill_alert_events e
+  where e.id = attempt_row.refill_alert_event_id
+  for update;
 
   insert into public.refill_alert_provider_events (
     provider,
@@ -850,11 +860,15 @@ begin
       end if;
   end case;
 
-  select a, e
-  into attempt_row, event_row
+  select a.*
+  into attempt_row
   from public.refill_alert_call_attempts a
-  join public.refill_alert_events e on e.id = a.refill_alert_event_id
   where a.id = attempt_row.id;
+
+  select e.*
+  into event_row
+  from public.refill_alert_events e
+  where e.id = attempt_row.refill_alert_event_id;
 
   return query
   select event_row.id, event_row.user_id, p_provider_call_id,
