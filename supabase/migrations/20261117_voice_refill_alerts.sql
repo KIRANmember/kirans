@@ -136,7 +136,7 @@ alter table public.refill_alert_events
 -- Only a newly-created voice event table has the cycle-based uniqueness
 -- contract. The existing WhatsApp alert history may legitimately have more
 -- than one row per medication and must remain untouched.
-do $
+do $voice_unique$
 begin
   if current_setting('pillmate_voice.created_refill_alert_events', true) = 'true'
      and not exists (
@@ -147,7 +147,7 @@ begin
       unique (medication_id, low_stock_cycle);
   end if;
 end;
-$;
+$voice_unique$;
 
 create table if not exists public.refill_alert_call_attempts (
   id uuid primary key default gen_random_uuid(),
@@ -413,7 +413,7 @@ returns trigger
 language plpgsql
 security definer
 set search_path = public
-as $
+as $voice_initialize$
 declare
   initial_status text := 'awaiting_consent';
   medicine_value text;
@@ -448,7 +448,7 @@ begin
 
   return new;
 end;
-$;
+$voice_initialize$;
 
 -- This name runs before the enqueue trigger alphabetically, ensuring an
 -- eligible new WhatsApp event is queued with its voice status already set.
