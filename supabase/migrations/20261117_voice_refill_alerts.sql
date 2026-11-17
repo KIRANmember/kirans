@@ -536,7 +536,7 @@ declare
   event_row public.refill_alert_events%rowtype;
   attempt_row public.refill_alert_call_attempts%rowtype;
 begin
-  select a.*, e.*
+  select a, e
   into attempt_row, event_row
   from public.refill_alert_call_attempts a
   join public.refill_alert_events e on e.id = a.refill_alert_event_id
@@ -636,7 +636,7 @@ declare
   action_value text := 'none';
   terminal_reason text;
 begin
-  select a.*, e.*
+  select a, e
   into attempt_row, event_row
   from public.refill_alert_call_attempts a
   join public.refill_alert_events e on e.id = a.refill_alert_event_id
@@ -795,7 +795,7 @@ begin
       end if;
   end case;
 
-  select a.*, e.*
+  select a, e
   into attempt_row, event_row
   from public.refill_alert_call_attempts a
   join public.refill_alert_events e on e.id = a.refill_alert_event_id
