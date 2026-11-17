@@ -18,6 +18,7 @@
 <span aria-hidden="true">⌁</span> Connect PillMate Wi-Fi
 </a>
 <p class="device-connect-hint" id="device-connect-hint" role="status" aria-live="polite">If the setup page does not open, connect your phone or computer to the <strong>PillMate Wi-Fi</strong> network, then select this button again.</p>
+<div class="message" id="device-sync-message" role="status" aria-live="polite"></div>
 </section>
 <section class="panel">
 <h2>Caregiver contact and voice alerts</h2><p class="muted">Keep your WhatsApp number for existing reminders. Voice calls use a separately consented caregiver number.</p>
@@ -53,12 +54,58 @@
 (async()=>{
 const $=id=>document.getElementById(id);let sb,user,profile;
 const show=(id,msg,type="success")=>{const el=$(id);el.textContent=msg;el.className="message show "+type};
+const PILLMATE_PENDING_SYNC_KEY="pillmate_pending_drawer_sync_v1";
+const parseOptionalNumber=(value,integer=false)=>{if(value===null||value==="")return null;const n=Number(value);return Number.isFinite(n)&&n>0&&(!integer||Number.isInteger(n))?n:NaN};
+const incomingParams=new URLSearchParams(window.location.search);
+if(incomingParams.get("pillmate_sync")==="1"){
+  const drawer=Number(incomingParams.get("drawer"));
+  const medName=(incomingParams.get("med_name")||"").trim();
+  const pillsPutIn=parseOptionalNumber(incomingParams.get("pills_put_in"),true);
+  const pillsPerDay=parseOptionalNumber(incomingParams.get("pills_per_day"));
+  const pillsOnDoseDay=parseOptionalNumber(incomingParams.get("pills_on_dose_day"));
+  const intervalDays=parseOptionalNumber(incomingParams.get("interval_days"),true);
+  const courseDays=parseOptionalNumber(incomingParams.get("course_days"),true);
+  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&(!Number.isNaN(pillsOnDoseDay))&&(!Number.isNaN(intervalDays))&&(!Number.isNaN(courseDays));
+  if(valid){
+    sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({drawer,medName,pillsPutIn,pillsPerDay,pillsOnDoseDay,intervalDays,courseDays,updatedAt:new Date().toISOString()}));
+  }else{
+    sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({error:"The PillMate setup data is incomplete or invalid. Please return to the device setup page and check the medicine details."}));
+  }
+  window.history.replaceState({},document.title,window.location.pathname);
+}
 try{
 if(!window.PILLMATE_SUPABASE_URL||!window.PILLMATE_SUPABASE_ANON_KEY)throw new Error("Supabase configuration is missing.");
 sb=window.supabase.createClient(window.PILLMATE_SUPABASE_URL,window.PILLMATE_SUPABASE_ANON_KEY);
 const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){location.replace("/auth/login.html");return}
 user=data.session.user;$("user-name").textContent=user.user_metadata?.full_name||user.email;
 const {data:loadedProfile,error:pe}=await sb.from("profiles").select("whatsapp_phone,voice_call_phone,voice_call_consent_at,voice_call_consent_version,voice_call_opted_out_at").eq("id",user.id).maybeSingle();if(pe)throw pe;profile=loadedProfile;if(profile?.whatsapp_phone)$("phone").value=profile.whatsapp_phone;if(profile?.voice_call_phone)$("voice-phone").value=profile.voice_call_phone;else if(profile?.whatsapp_phone)$("voice-phone").value=profile.whatsapp_phone;$("voice-consent").checked=Boolean(profile?.voice_call_consent_at&&!profile?.voice_call_opted_out_at);$("voice-opt-out").hidden=!profile?.voice_call_consent_at||Boolean(profile?.voice_call_opted_out_at);
+const pendingSync=sessionStorage.getItem(PILLMATE_PENDING_SYNC_KEY);
+if(pendingSync){
+  try{
+    const payload=JSON.parse(pendingSync);
+    if(payload.error){show("device-sync-message",payload.error,"error");sessionStorage.removeItem(PILLMATE_PENDING_SYNC_KEY);}
+    else{
+      const {error:syncError}=await sb.from("medications").upsert({
+        user_id:user.id,
+        drawer_number:payload.drawer,
+        medicine_name:payload.medName,
+        total_pills:payload.pillsPutIn,
+        pills_remaining:payload.pillsPutIn,
+        daily_dose:payload.pillsPerDay,
+        pills_on_dose_day:payload.pillsOnDoseDay,
+        interval_days:payload.intervalDays,
+        course_days:payload.courseDays,
+        device_updated_at:payload.updatedAt,
+        reminder_times:[]
+      },{onConflict:"user_id,drawer_number"});
+      if(syncError)throw syncError;
+      sessionStorage.removeItem(PILLMATE_PENDING_SYNC_KEY);
+      show("device-sync-message","Drawer "+payload.drawer+" — "+payload.medName+" saved to your PillMate dashboard.");
+    }
+  }catch(syncError){
+    show("device-sync-message","Could not save the PillMate medicine details: "+(syncError.message||"Please try again."),"error");
+  }
+}
 await loadMeds();
 $("connect-pillmate-wifi").addEventListener("click",()=>{$("device-connect-hint").textContent="Opening the PillMate setup page. If it does not load, connect your phone or computer to the PillMate Wi-Fi network and try again.";});
 $("signout").onclick=async()=>{await sb.auth.signOut();location.replace("/auth/login.html")};
