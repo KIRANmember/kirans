@@ -61,7 +61,7 @@ function refillMessage(medicineName: string, remainingPills: number) {
   const pillNoun = remainingPills === 1 ? "pill" : "pills";
   return [
     "Hello. This is PillMate.",
-    \`\${medicine} has \${remainingPills} \${pillNoun} remaining.\`,
+    `${medicine} has ${remainingPills} ${pillNoun} remaining.`,
     "Please arrange a refill soon to avoid an interruption in medication.",
     "Press 1 to acknowledge this alert. Press 9 to stop voice refill alerts.",
   ].join(" ");
@@ -75,11 +75,11 @@ async function sendExomlAction(
   apiToken: string,
 ) {
   const response = await fetch(
-    \`https://cpaas-api.in.exotel.com/v2/accounts/\${encodeURIComponent(accountSid)}/legs/\${encodeURIComponent(legId)}/actions\`,
+    `https://cpaas-api.in.exotel.com/v2/accounts/${encodeURIComponent(accountSid)}/legs/${encodeURIComponent(legId)}/actions`,
     {
       method: "POST",
       headers: {
-        Authorization: \`Basic \${btoa(\`\${apiKey}:\${apiToken}\`)}\`,
+        Authorization: `Basic ${btoa(`${apiKey}:${apiToken}`)}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ exoml }),
@@ -90,7 +90,7 @@ async function sendExomlAction(
 
   const body = (await response.text()).replace(/\s+/g, " ").slice(0, 400);
   throw new Error(
-    \`Exotel action failed with HTTP \${response.status}\${body ? \`: \${body}\` : ""}\`,
+    `Exotel action failed with HTTP ${response.status}${body ? `: ${body}` : ""}`,
   );
 }
 
@@ -106,7 +106,7 @@ Deno.serve(async (request) => {
     return json({ error: "Callback authentication is not configured" }, 503);
   }
 
-  const expectedAuthorization = \`Basic \${btoa(\`\${callbackUsername}:\${callbackPassword}\`)}\`;
+  const expectedAuthorization = `Basic ${btoa(`${callbackUsername}:${callbackPassword}`)}`;
   if (!constantTimeEquals(
     request.headers.get("authorization"),
     expectedAuthorization,
@@ -157,11 +157,11 @@ Deno.serve(async (request) => {
 
   let exoml: string;
   if (result.next_action === "speak") {
-    exoml = \`<?xml version="1.0" encoding="UTF-8"?><Flow><StartSay language="en" preferredTTSEngine="polly" pollyVoiceId="Aditi">\${escapeXml(refillMessage(result.medicine_name, result.remaining_pills))}</StartSay></Flow>\`;
+    exoml = `<?xml version="1.0" encoding="UTF-8"?><Flow><StartSay language="en" preferredTTSEngine="polly" pollyVoiceId="Aditi">${escapeXml(refillMessage(result.medicine_name, result.remaining_pills))}</StartSay></Flow>`;
   } else if (result.next_action === "gather") {
-    exoml = \`<?xml version="1.0" encoding="UTF-8"?><Flow><Gather numDigits="1" timeoutInSec="10"></Gather></Flow>\`;
+    exoml = `<?xml version="1.0" encoding="UTF-8"?><Flow><Gather numDigits="1" timeoutInSec="10"></Gather></Flow>`;
   } else {
-    exoml = \`<?xml version="1.0" encoding="UTF-8"?><Flow><Hangup></Hangup></Flow>\`;
+    exoml = `<?xml version="1.0" encoding="UTF-8"?><Flow><Hangup></Hangup></Flow>`;
   }
 
   try {
