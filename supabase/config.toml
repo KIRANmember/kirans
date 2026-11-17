@@ -1,0 +1,5 @@
+[functions.send-refill-voice-alerts]
+verify_jwt = false
+
+[functions.exotel-voice-events]
+verify_jwt = false
