@@ -133,17 +133,21 @@ alter table public.refill_alert_events
   add column if not exists created_at timestamptz not null default now(),
   add column if not exists updated_at timestamptz not null default now();
 
-do $$
+-- Only a newly-created voice event table has the cycle-based uniqueness
+-- contract. The existing WhatsApp alert history may legitimately have more
+-- than one row per medication and must remain untouched.
+do $
 begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'refill_alert_events_medication_cycle_key'
-  ) then
+  if current_setting('pillmate_voice.created_refill_alert_events', true) = 'true'
+     and not exists (
+       select 1 from pg_constraint where conname = 'refill_alert_events_medication_cycle_key'
+     ) then
     alter table public.refill_alert_events
       add constraint refill_alert_events_medication_cycle_key
       unique (medication_id, low_stock_cycle);
   end if;
 end;
-$$;
+$;
 
 create table if not exists public.refill_alert_call_attempts (
   id uuid primary key default gen_random_uuid(),
@@ -401,6 +405,57 @@ exception
     raise warning 'PillMate voice alert enqueue failed: %', sqlerrm;
 end;
 $$;
+
+-- Adapt the established WhatsApp low-stock event stream to voice alerts.
+-- This does not change the existing low-stock threshold or WhatsApp trigger.
+create or replace function public.pillmate_initialize_voice_refill_alert()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $
+declare
+  initial_status text := 'awaiting_consent';
+  medicine_value text;
+begin
+  if new.event_type <> 'low_stock_detected' then
+    return new;
+  end if;
+
+  select
+    case
+      when p.voice_call_phone is not null
+       and p.voice_call_consent_at is not null
+       and p.voice_call_opted_out_at is null
+      then 'pending'
+      else 'awaiting_consent'
+    end,
+    m.medicine_name
+  into initial_status, medicine_value
+  from public.profiles p
+  join public.medications m on m.id = new.medication_id
+  where p.id = new.user_id;
+
+  update public.refill_alert_events
+  set voice_status = coalesce(initial_status, 'awaiting_consent'),
+      medicine_name = coalesce(medicine_name, medicine_value),
+      remaining_pills = coalesce(remaining_pills, new.stock_remaining),
+      next_retry_at = case
+        when initial_status = 'pending' then now()
+        else null
+      end
+  where id = new.id;
+
+  return new;
+end;
+$;
+
+-- This name runs before the enqueue trigger alphabetically, ensuring an
+-- eligible new WhatsApp event is queued with its voice status already set.
+drop trigger if exists aaa_pillmate_initialize_voice_refill_alert on public.refill_alert_events;
+create trigger aaa_pillmate_initialize_voice_refill_alert
+after insert on public.refill_alert_events
+for each row execute function public.pillmate_initialize_voice_refill_alert();
 
 drop trigger if exists pillmate_enqueue_voice_refill_alert on public.refill_alert_events;
 create trigger pillmate_enqueue_voice_refill_alert
