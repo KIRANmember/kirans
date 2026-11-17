@@ -678,7 +678,7 @@ begin
           initiated_at = coalesce(initiated_at, now())
       where id = attempt_row.id;
 
-      if event_row.voice_status not in ('acknowledged', 'opted_out') then
+      if event_row.voice_status in ('claimed', 'provider_accepted') then
         update public.refill_alert_events
         set voice_status = 'initiated',
             call_initiated_at = coalesce(call_initiated_at, now()),
@@ -690,7 +690,7 @@ begin
       update public.refill_alert_call_attempts set status = 'ringing'
       where id = attempt_row.id;
 
-      if event_row.voice_status not in ('acknowledged', 'opted_out') then
+      if event_row.voice_status in ('claimed', 'provider_accepted', 'initiated') then
         update public.refill_alert_events
         set voice_status = 'ringing',
             claim_lease_expires_at = null
@@ -703,7 +703,7 @@ begin
           answered_at = coalesce(answered_at, now())
       where id = attempt_row.id;
 
-      if event_row.voice_status not in ('acknowledged', 'opted_out') then
+      if event_row.voice_status in ('claimed', 'provider_accepted', 'initiated', 'ringing') then
         update public.refill_alert_events
         set voice_status = 'answered',
             call_answered_at = coalesce(call_answered_at, now()),
