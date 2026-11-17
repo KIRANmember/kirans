@@ -32,7 +32,7 @@ function constantTimeEquals(actual: string | null, expected: string | undefined)
 
 function providerError(status: number, body: string) {
   const compactBody = body.replace(/\s+/g, " ").slice(0, 400);
-  return \`Exotel leg request failed with HTTP \${status}\${compactBody ? \`: \${compactBody}\` : ""}\`;
+  return `Exotel leg request failed with HTTP ${status}${compactBody ? `: ${compactBody}` : ""}`;
 }
 
 Deno.serve(async (request) => {
@@ -108,8 +108,8 @@ Deno.serve(async (request) => {
     return json({ error: "VOICE_TEST_PHONE is required in test mode" }, 503);
   }
 
-  const eventEndpoint = \`\${supabaseUrl}/functions/v1/exotel-voice-events\`;
-  const authorization = \`Basic \${btoa(\`\${exotelApiKey}:\${exotelApiToken}\`)}\`;
+  const eventEndpoint = `${supabaseUrl}/functions/v1/exotel-voice-events`;
+  const authorization = `Basic ${btoa(`${exotelApiKey}:${exotelApiToken}`)}`;
   const results: Array<{ eventId: string; outcome: string }> = [];
 
   for (const eventId of eventIds) {
@@ -143,7 +143,7 @@ Deno.serve(async (request) => {
     let providerBody = "";
     try {
       providerResponse = await fetch(
-        \`https://cpaas-api.in.exotel.com/v2/accounts/\${encodeURIComponent(exotelAccountSid)}/legs\`,
+        `https://cpaas-api.in.exotel.com/v2/accounts/${encodeURIComponent(exotelAccountSid)}/legs`,
         {
           method: "POST",
           headers: {
@@ -162,7 +162,7 @@ Deno.serve(async (request) => {
       const reason = error instanceof Error ? error.message : "Network request failed";
       await client.rpc("pillmate_mark_voice_attempt_failed", {
         p_attempt_id: claim.attempt_id,
-        p_failure_reason: \`Exotel request error: \${reason}\`,
+        p_failure_reason: `Exotel request error: ${reason}`,
       });
       results.push({ eventId, outcome: "provider_request_failed" });
       continue;
