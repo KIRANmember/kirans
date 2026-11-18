@@ -638,21 +638,50 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
     }
 
     function sendToKiranDashboard(medicine) {
+      const drawer = document.getElementById('drawer').value;
+      const dailyMode = document.getElementById('dailyMode').value;
+      const dayPattern = document.getElementById('dayPattern').value;
+      const dosesPerDay = parseInt(document.getElementById('dosesPerDay').value, 10) || 1;
+      const pillsPerDose = parseInt(document.getElementById('pillsPerDose').value, 10) || 1;
+      const firstDoseTime = document.getElementById('firstDoseTime').value || '';
+      const hourInterval = parseInt(document.getElementById('hourInterval').value, 10) || 6;
+
+      // Send the same schedule details that were saved to the ESP32.
+      const reminderTimes = [];
+      if (dailyMode === 'fixed_times') {
+        for (let i = 1; i <= dosesPerDay; i++) {
+          const value = document.getElementById('time' + i).value;
+          if (value) reminderTimes.push(value);
+        }
+      } else if (firstDoseTime) {
+        const [startHour, startMinute] = firstDoseTime.split(':').map(Number);
+        for (let elapsed = 0; elapsed < 24; elapsed += hourInterval) {
+          const hour = (startHour + elapsed) % 24;
+          reminderTimes.push(String(hour).padStart(2, '0') + ':' + String(startMinute).padStart(2, '0'));
+        }
+      }
+
       const params = new URLSearchParams({
-        pillmate_sync: "1",
+        pillmate_sync: '1',
         drawer: medicine.drawer,
         med_name: medicine.medName,
         pills_put_in: medicine.pillsPutIn,
         pills_per_day: medicine.pillsPerDay,
-        pills_on_dose_day: medicine.pillsOnDoseDay || "",
-        interval_days: medicine.intervalDays || "",
-        course_days: medicine.courseDays || ""
+        pills_on_dose_day: medicine.pillsOnDoseDay,
+        interval_days: medicine.intervalDays,
+        course_days: medicine.courseDays,
+        reminder_times: JSON.stringify(reminderTimes),
+        daily_mode: dailyMode,
+        day_pattern: dayPattern,
+        doses_per_day: dosesPerDay,
+        pills_per_dose: pillsPerDose,
+        first_dose_time: dailyMode === 'hourly_interval' ? firstDoseTime : '',
+        hour_interval: dailyMode === 'hourly_interval' ? hourInterval : '',
+        device_updated_at: new Date().toISOString()
       });
 
-      window.location.href =
-        "[https://thekiran.in/dashboard/](https://thekiran.in/dashboard/)?" + params.toString();
+      window.location.href = 'https://thekiran.in/dashboard/?' + params.toString();
     }
-
     async function saveAndSyncToKiran() {
       const form = document.getElementById('medForm');
 
