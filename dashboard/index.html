@@ -30,6 +30,21 @@
 <button class="submit" type="submit" id="save-profile">Save contact preferences</button><button class="secondary" type="button" id="voice-opt-out" hidden>Stop voice refill calls</button><div class="message" id="profile-message" role="status"></div>
 </form>
 </section>
+
+<section class="panel" aria-labelledby="voice-record-title">
+<h2 id="voice-record-title">Record a voice reminder</h2>
+<p class="muted">Record a short spoken reminder for your PillMate device. You can listen before saving it to your account.</p>
+<div class="actions">
+<button class="submit" style="width:auto;padding:0 18px" id="voice-record-start" type="button">Start recording</button>
+<button class="secondary" id="voice-record-stop" type="button" disabled>Stop recording</button>
+</div>
+<p class="muted voice-note" id="voice-record-status" role="status" aria-live="polite">Your browser will ask for microphone permission when you start.</p>
+<audio id="voice-record-preview" controls hidden style="width:100%;margin-top:14px"></audio>
+<div class="field" style="margin-top:14px"><label for="voice-record-name">Reminder label</label><input id="voice-record-name" maxlength="80" placeholder="e.g. Time for your evening medicine"></div>
+<button class="submit" id="voice-record-save" type="button" disabled>Save voice recording</button>
+<div class="message" id="voice-record-message" role="status" aria-live="polite"></div>
+<div id="voice-recordings" class="med-list"><div class="empty">Your saved voice reminders will appear here.</div></div>
+</section>
 <section class="panel">
 <h2>Add a medication</h2><p class="muted">Enter the pack size, how many pills are left right now, and your daily dose.</p>
 <form id="med-form">
@@ -132,6 +147,7 @@ if(pendingSync){
   }
 }
 await loadMeds();
+await loadVoiceRecordings();
 $("connect-pillmate-wifi").addEventListener("click",()=>{$("device-connect-hint").textContent="Opening the PillMate setup page. If it does not load, connect your phone or computer to the PillMate Wi-Fi network and try again.";});
 $("signout").onclick=async()=>{await sb.auth.signOut();location.replace("/auth/login.html")};
 $("profile-form").onsubmit=async e=>{e.preventDefault();const phone=$("phone").value.trim(),voicePhone=$("voice-phone").value.trim(),hasConsent=$("voice-consent").checked;if(!/^\+[1-9]\d{7,14}$/.test(phone)){show("profile-message","Enter a valid WhatsApp number with country code, e.g. +919876543210.","error");return}if(voicePhone&&!/^\+[1-9]\d{7,14}$/.test(voicePhone)){show("profile-message","Enter a valid caregiver number with country code, e.g. +919876543210.","error");return}if(hasConsent&&!voicePhone){show("profile-message","Enter the caregiver’s voice-call number before recording consent.","error");return}const now=new Date().toISOString(),phoneChanged=voicePhone!==profile?.voice_call_phone;const consentAt=hasConsent?(phoneChanged?now:(profile?.voice_call_consent_at||now)):null;const optedOutAt=hasConsent?null:(voicePhone?(profile?.voice_call_opted_out_at||now):null);const {data:savedProfile,error}=await sb.from("profiles").upsert({id:user.id,full_name:user.user_metadata?.full_name||"",whatsapp_phone:phone,voice_call_phone:voicePhone||null,voice_call_consent_at:consentAt,voice_call_consent_version:hasConsent?"2026-11-17":null,voice_call_opted_out_at:optedOutAt}).select("whatsapp_phone,voice_call_phone,voice_call_consent_at,voice_call_consent_version,voice_call_opted_out_at").single();if(error)throw error;profile=savedProfile;$("voice-opt-out").hidden=!hasConsent;show("profile-message",hasConsent?"Caregiver voice-call consent saved.":"WhatsApp number saved; voice calls are opted out.")};
@@ -139,7 +155,66 @@ $("voice-opt-out").onclick=async()=>{const {data:savedProfile,error}=await sb.fr
 $("med-form").onsubmit=async e=>{e.preventDefault();const total=Number($("total").value),remaining=Number($("remaining").value),daily=Number($("daily").value);if(!Number.isInteger(total)||total<1||!Number.isInteger(remaining)||remaining<0||remaining>total||!Number.isFinite(daily)||daily<=0){show("med-message","Check the pill counts and daily dosage. Remaining pills cannot exceed the pack size.","error");return}
 const times=$("times").value.split(",").map(x=>x.trim()).filter(Boolean);if(times.some(t=>!/^([01]\d|2[0-3]):[0-5]\d$/.test(t))){show("med-message","Enter reminder times in HH:MM 24-hour format, separated by commas.","error");return}
 const {error}=await sb.from("medications").insert({user_id:user.id,medicine_name:$("medicine").value.trim(),total_pills:total,pills_remaining:remaining,daily_dose:daily,reminder_times:times});if(error)throw error;$("med-form").reset();show("med-message","Medication added.");await loadMeds()};
+
 $("refresh").onclick=loadMeds;
+
+// Voice reminder recording and private Supabase Storage upload.
+let voiceRecorder=null,voiceStream=null,voiceChunks=[],voiceBlob=null,voiceMime="";
+const voiceStart=$("voice-record-start"),voiceStop=$("voice-record-stop"),voiceSave=$("voice-record-save"),voicePreview=$("voice-record-preview"),voiceStatus=$("voice-record-status");
+const setVoiceStatus=(message)=>{voiceStatus.textContent=message;};
+voiceStart.onclick=async()=>{
+  if(!navigator.mediaDevices?.getUserMedia||!window.MediaRecorder){setVoiceStatus("Audio recording is not supported in this browser. Try the latest Chrome or Edge.");return;}
+  try{
+    voiceStream=await navigator.mediaDevices.getUserMedia({audio:true});
+    voiceChunks=[];voiceBlob=null;voiceSave.disabled=true;voicePreview.hidden=true;
+    const preferred=["audio/webm;codecs=opus","audio/webm","audio/mp4"];
+    voiceMime=preferred.find(type=>MediaRecorder.isTypeSupported(type))||"";
+    voiceRecorder=voiceMime?new MediaRecorder(voiceStream,{mimeType:voiceMime}):new MediaRecorder(voiceStream);
+    voiceMime=voiceRecorder.mimeType||"audio/webm";
+    voiceRecorder.ondataavailable=event=>{if(event.data&&event.data.size)voiceChunks.push(event.data);};
+    voiceRecorder.onerror=()=>{setVoiceStatus("Recording failed. Please try again.");};
+    voiceRecorder.onstop=()=>{
+      voiceBlob=new Blob(voiceChunks,{type:voiceMime});
+      voicePreview.src=URL.createObjectURL(voiceBlob);voicePreview.hidden=false;
+      voiceSave.disabled=!voiceBlob.size;voiceStart.disabled=false;voiceStop.disabled=true;
+      if(voiceStream)voiceStream.getTracks().forEach(track=>track.stop());
+      setVoiceStatus("Recording ready. Listen to it, add a label, then save it.");
+    };
+    voiceRecorder.start();voiceStart.disabled=true;voiceStop.disabled=false;
+    setVoiceStatus("Recording… select Stop recording when you are finished.");
+  }catch(error){if(voiceStream)voiceStream.getTracks().forEach(track=>track.stop());voiceStart.disabled=false;voiceStop.disabled=true;setVoiceStatus("Could not access the microphone: "+(error.message||"Permission denied."));}
+};
+voiceStop.onclick=()=>{if(voiceRecorder&&voiceRecorder.state!=="inactive")voiceRecorder.stop();};
+voiceSave.onclick=async()=>{
+  if(!voiceBlob)return;
+  voiceSave.disabled=true;setVoiceStatus("Uploading your voice reminder…");
+  try{
+    const ext=voiceMime.includes("mp4")?"m4a":voiceMime.includes("ogg")?"ogg":voiceMime.includes("mpeg")?"mp3":"webm";
+    const path=user.id+"/"+Date.now()+"."+ext;
+    const label=$("voice-record-name").value.trim()||"Voice reminder";
+    const {error:uploadError}=await sb.storage.from("pillmate-voice-reminders").upload(path,voiceBlob,{contentType:voiceMime,upsert:false});
+    if(uploadError)throw uploadError;
+    const {error:metaError}=await sb.from("voice_reminders").insert({user_id:user.id,label,storage_path:path,mime_type:voiceMime,file_size:voiceBlob.size});
+    if(metaError){await sb.storage.from("pillmate-voice-reminders").remove([path]);throw metaError;}
+    $("voice-record-name").value="";voiceBlob=null;voiceChunks=[];voicePreview.pause();voicePreview.removeAttribute("src");voicePreview.load();voicePreview.hidden=true;
+    show("voice-record-message","Voice reminder saved to your account.");
+    setVoiceStatus("Saved. Your recording is stored privately in your PillMate account.");
+    await loadVoiceRecordings();
+  }catch(error){voiceSave.disabled=false;show("voice-record-message","Could not save recording: "+(error.message||"Please try again."),"error");setVoiceStatus("Your recording is still available to retry.");}
+};
+async function loadVoiceRecordings(){
+  const host=$("voice-recordings");
+  const {data,error}=await sb.from("voice_reminders").select("id,label,storage_path,mime_type,created_at").eq("user_id",user.id).order("created_at",{ascending:false});
+  if(error){host.innerHTML='<div class="empty">Could not load saved voice reminders: '+escapeHtml(error.message)+'</div>';return;}
+  if(!data.length){host.innerHTML='<div class="empty">No voice reminders saved yet.</div>';return;}
+  const rows=await Promise.all(data.map(async item=>{
+    const {data:signed,error:signedError}=await sb.storage.from("pillmate-voice-reminders").createSignedUrl(item.storage_path,3600);
+    if(signedError)return '<article class="med-card"><h3>'+escapeHtml(item.label)+'</h3><p class="pill-meta">Audio preview unavailable: '+escapeHtml(signedError.message)+'</p></article>';
+    return '<article class="med-card"><h3>'+escapeHtml(item.label)+'</h3><p class="pill-meta">'+new Date(item.created_at).toLocaleString()+'</p><audio controls preload="none" src="'+escapeHtml(signed.signedUrl)+'" style="width:100%"></audio></article>';
+  }));
+  host.innerHTML=rows.join("");
+}
+
 }catch(e){document.body.insertAdjacentHTML("beforeend",'<p style="color:#e06c75;text-align:center;padding:16px">'+String(e.message).replace(/[<>&]/g,"")+'</p>')}
 async function loadMeds(){const {data,error}=await sb.from("medications").select("*").eq("user_id",user.id).eq("active",true).order("created_at",{ascending:false});if(error){$("med-list").innerHTML='<div class="empty">Database setup is needed before medications can be saved. Run the SQL setup file in Supabase.</div>';return}
 if(!data.length){$("med-list").innerHTML='<div class="empty">No medications added yet. Add your first medication above.</div>';return}
