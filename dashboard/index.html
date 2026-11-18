@@ -71,14 +71,20 @@ if(syncParams.get("pillmate_sync")==="1"){
   let scheduleValid=false;
   try{
     reminderTimes=JSON.parse(syncParams.get("reminder_times")||"[]");
-    scheduleValid=Array.isArray(reminderTimes)&&reminderTimes.length>=1&&reminderTimes.length<=4&&reminderTimes.every(t=>typeof t==="string"&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t));
+    scheduleValid=Array.isArray(reminderTimes)&&reminderTimes.length>=1&&reminderTimes.length<=24&&reminderTimes.every(t=>typeof t==="string"&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t));
   }catch(_){scheduleValid=false;}
+  const scheduleMode=syncParams.get("daily_mode")||"fixed_times";
+  const dayPattern=syncParams.get("day_pattern")||"daily";
+  const dosesPerDay=parseOptionalNumber(syncParams.get("doses_per_day"),true);
+  const pillsPerDose=parseOptionalNumber(syncParams.get("pills_per_dose"),true);
+  const firstDoseTime=syncParams.get("first_dose_time")||"";
+  const hourInterval=parseOptionalNumber(syncParams.get("hour_interval"),true);
   const updatedAt=syncParams.get("device_updated_at")||new Date().toISOString();
-  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&Number.isFinite(pillsOnDoseDay)&&pillsOnDoseDay>0&&Number.isInteger(intervalDays)&&intervalDays>0&&Number.isInteger(courseDays)&&courseDays>0&&scheduleValid;
+  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&Number.isFinite(pillsOnDoseDay)&&pillsOnDoseDay>0&&Number.isInteger(intervalDays)&&intervalDays>0&&Number.isInteger(courseDays)&&courseDays>0&&scheduleValid&&["fixed_times","hourly_interval"].includes(scheduleMode)&&["daily","alternate","weekly","custom_days"].includes(dayPattern)&&Number.isInteger(dosesPerDay)&&dosesPerDay>=1&&dosesPerDay<=4&&Number.isInteger(pillsPerDose)&&pillsPerDose>0&&(!Number.isNaN(hourInterval))&&(!firstDoseTime||/^([01]\\d|2[0-3]):[0-5]\\d$/.test(firstDoseTime));
   if(valid){
     sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({
       drawer,medName,pillsPutIn,pillsPerDay,pillsOnDoseDay,intervalDays,courseDays,
-      reminderTimes,updatedAt
+      reminderTimes,scheduleMode,dayPattern,dosesPerDay,pillsPerDose,firstDoseTime,hourInterval,updatedAt
     }));
   }else{
     sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({error:"The PillMate setup data is incomplete or invalid. Please return to the device setup page and check the medicine details."}));
@@ -109,7 +115,13 @@ if(pendingSync){
         interval_days:payload.intervalDays,
         course_days:payload.courseDays,
         device_updated_at:payload.updatedAt,
-        reminder_times:payload.reminderTimes
+        reminder_times:payload.reminderTimes,
+        schedule_mode:payload.scheduleMode,
+        day_pattern:payload.dayPattern,
+        doses_per_day:payload.dosesPerDay,
+        pills_per_dose:payload.pillsPerDose,
+        first_dose_time:payload.firstDoseTime||null,
+        hour_interval:payload.scheduleMode==="hourly_interval"?payload.hourInterval:null
       },{onConflict:"user_id,drawer_number"});
       if(syncError)throw syncError;
       sessionStorage.removeItem(PILLMATE_PENDING_SYNC_KEY);
@@ -131,7 +143,7 @@ $("refresh").onclick=loadMeds;
 }catch(e){document.body.insertAdjacentHTML("beforeend",'<p style="color:#e06c75;text-align:center;padding:16px">'+String(e.message).replace(/[<>&]/g,"")+'</p>')}
 async function loadMeds(){const {data,error}=await sb.from("medications").select("*").eq("user_id",user.id).eq("active",true).order("created_at",{ascending:false});if(error){$("med-list").innerHTML='<div class="empty">Database setup is needed before medications can be saved. Run the SQL setup file in Supabase.</div>';return}
 if(!data.length){$("med-list").innerHTML='<div class="empty">No medications added yet. Add your first medication above.</div>';return}
-$("med-list").innerHTML=data.map(m=>{const threshold=Math.ceil(Number(m.total_pills)*.1),low=Number(m.pills_remaining)<=threshold;return '<article class="med-card"><h3>'+escapeHtml(m.medicine_name)+'</h3><div class="count">'+Number(m.pills_remaining)+' pills left</div><div class="pill-meta">'+(m.drawer_number?'PillMate drawer: '+m.drawer_number+'<br>':'')+'Pack size: '+m.total_pills+'<br>Daily dose: '+m.daily_dose+' pill(s)'+(m.pills_on_dose_day?' on dose day: '+m.pills_on_dose_day:'')+(m.interval_days?'<br>Every '+m.interval_days+' day(s)':'')+(m.course_days?'<br>Course duration: '+m.course_days+' day(s)':'')+'<br>Refill alert at: '+threshold+' or fewer<br>Reminder times: '+(m.reminder_times?.length?m.reminder_times.join(", "):"Not set")+'</div>'+(low?'<div class="alert">Refill soon — you are at or below your 10% threshold.</div>':'')+'<div class="actions"><button class="secondary" data-demo="'+m.id+'">Demo: simulate one day</button><a class="pharmacy-link" href="https://www.1mg.com/" target="_blank" rel="noopener noreferrer">Find a Pharmacy</a></div><form class="refill-form" data-refill="'+m.id+'"><label>Pills received<input name="quantity" type="number" min="1" step="1" required placeholder="e.g. 30"></label><button type="submit">Record refill</button></form></article>'}).join("");
+$("med-list").innerHTML=data.map(m=>{const threshold=Math.ceil(Number(m.total_pills)*.1),low=Number(m.pills_remaining)<=threshold;return '<article class="med-card"><h3>'+escapeHtml(m.medicine_name)+'</h3><div class="count">'+Number(m.pills_remaining)+' pills left</div><div class="pill-meta">'+(m.drawer_number?'PillMate drawer: '+m.drawer_number+'<br>':'')+'Pack size: '+m.total_pills+'<br>Daily dose: '+m.daily_dose+' pill(s)'+(m.pills_on_dose_day?' on dose day: '+m.pills_on_dose_day:'')+(m.interval_days?'<br>Every '+m.interval_days+' day(s)':'')+(m.course_days?'<br>Course duration: '+m.course_days+' day(s)':'')+(m.schedule_mode?'<br>Schedule: '+(m.schedule_mode==="hourly_interval"?'Every '+m.hour_interval+' hours':'Fixed daily times'):'')+(m.day_pattern?'<br>Day pattern: '+({daily:'Every day',alternate:'Alternate days',weekly:'Weekly',custom_days:'Every '+m.interval_days+' days'}[m.day_pattern]||m.day_pattern):'')+'<br>Refill alert at: '+threshold+' or fewer<br>Reminder times: '+(m.reminder_times?.length?m.reminder_times.join(", "):"Not set")+'</div>'+(low?'<div class="alert">Refill soon — you are at or below your 10% threshold.</div>':'')+'<div class="actions"><button class="secondary" data-demo="'+m.id+'">Demo: simulate one day</button><a class="pharmacy-link" href="https://www.1mg.com/" target="_blank" rel="noopener noreferrer">Find a Pharmacy</a></div><form class="refill-form" data-refill="'+m.id+'"><label>Pills received<input name="quantity" type="number" min="1" step="1" required placeholder="e.g. 30"></label><button type="submit">Record refill</button></form></article>'}).join("");
 document.querySelectorAll("[data-refill]").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const m=data.find(x=>x.id===form.dataset.refill);const quantity=Number(new FormData(form).get("quantity"));if(!Number.isInteger(quantity)||quantity<1){alert("Enter the number of pills received.");return}const next=Number(m.pills_remaining)+quantity;const {error}=await sb.from("medications").update({pills_remaining:next}).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}await loadMeds()});
 document.querySelectorAll("[data-demo]").forEach(b=>b.onclick=async()=>{const m=data.find(x=>x.id===b.dataset.demo);const next=Math.max(0,Number(m.pills_remaining)-Number(m.daily_dose));const {error}=await sb.from("medications").update({pills_remaining:next}).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}await loadMeds()});
 }
