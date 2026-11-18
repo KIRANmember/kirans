@@ -8,6 +8,7 @@
 #include <RtcDS1302.h>
 #include <time.h>
 #include <LittleFS.h>
+#include <esp_timer.h>
 
 // =========================================================
 // PILLMATE BOX CONTROLLER - ESP32-S3-N16R8
