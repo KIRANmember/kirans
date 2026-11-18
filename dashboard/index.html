@@ -185,20 +185,50 @@ voiceStart.onclick=async()=>{
   }catch(error){if(voiceStream)voiceStream.getTracks().forEach(track=>track.stop());voiceStart.disabled=false;voiceStop.disabled=true;setVoiceStatus("Could not access the microphone: "+(error.message||"Permission denied."));}
 };
 voiceStop.onclick=()=>{if(voiceRecorder&&voiceRecorder.state!=="inactive")voiceRecorder.stop();};
+async function convertVoiceToWav16kMono(sourceBlob){
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  if(!AudioCtx)throw new Error("This browser cannot convert audio. Use the latest Chrome or Edge.");
+  const decodeContext=new AudioCtx();
+  try{
+    const decoded=await decodeContext.decodeAudioData(await sourceBlob.arrayBuffer());
+    const sampleRate=16000;
+    const frameCount=Math.max(1,Math.ceil(decoded.duration*sampleRate));
+    const offline=new OfflineAudioContext(1,frameCount,sampleRate);
+    const source=offline.createBufferSource();
+    source.buffer=decoded;
+    source.connect(offline.destination);
+    source.start(0);
+    const rendered=await offline.startRendering();
+    const samples=rendered.getChannelData(0);
+    const buffer=new ArrayBuffer(44+samples.length*2);
+    const view=new DataView(buffer);
+    const writeText=(offset,value)=>{for(let i=0;i<value.length;i++)view.setUint8(offset+i,value.charCodeAt(i));};
+    writeText(0,"RIFF");view.setUint32(4,36+samples.length*2,true);writeText(8,"WAVE");
+    writeText(12,"fmt ");view.setUint32(16,16,true);view.setUint16(20,1,true);
+    view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);
+    view.setUint16(32,2,true);view.setUint16(34,16,true);writeText(36,"data");view.setUint32(40,samples.length*2,true);
+    let offset=44;
+    for(let i=0;i<samples.length;i++){
+      const sample=Math.max(-1,Math.min(1,samples[i]));
+      view.setInt16(offset,sample<0?sample*32768:sample*32767,true);offset+=2;
+    }
+    return new Blob([buffer],{type:"audio/wav"});
+  }finally{await decodeContext.close();}
+}
 voiceSave.onclick=async()=>{
   if(!voiceBlob)return;
-  voiceSave.disabled=true;setVoiceStatus("Uploading your voice reminder…");
+  voiceSave.disabled=true;setVoiceStatus("Converting your recording to ESP32-compatible WAV audio…");
   try{
-    const ext=voiceMime.includes("mp4")?"m4a":voiceMime.includes("ogg")?"ogg":voiceMime.includes("mpeg")?"mp3":"webm";
-    const path=user.id+"/"+Date.now()+"."+ext;
+    const wavBlob=await convertVoiceToWav16kMono(voiceBlob);
+    const path=user.id+"/"+Date.now()+".wav";
     const label=$("voice-record-name").value.trim()||"Voice reminder";
-    const {error:uploadError}=await sb.storage.from("pillmate-voice-reminders").upload(path,voiceBlob,{contentType:voiceMime,upsert:false});
+    const {error:uploadError}=await sb.storage.from("pillmate-voice-reminders").upload(path,wavBlob,{contentType:"audio/wav",upsert:false});
     if(uploadError)throw uploadError;
-    const {error:metaError}=await sb.from("voice_reminders").insert({user_id:user.id,label,storage_path:path,mime_type:voiceMime,file_size:voiceBlob.size});
+    const {error:metaError}=await sb.from("voice_reminders").insert({user_id:user.id,label,storage_path:path,mime_type:"audio/wav",file_size:wavBlob.size});
     if(metaError){await sb.storage.from("pillmate-voice-reminders").remove([path]);throw metaError;}
     $("voice-record-name").value="";voiceBlob=null;voiceChunks=[];voicePreview.pause();voicePreview.removeAttribute("src");voicePreview.load();voicePreview.hidden=true;
-    show("voice-record-message","Voice reminder saved to your account.");
-    setVoiceStatus("Saved. Your recording is stored privately in your PillMate account.");
+    show("voice-record-message","Voice reminder saved as 16 kHz mono WAV audio.");
+    setVoiceStatus("Saved. Download this WAV file when you are ready to transfer it to PillMate-S3.");
     await loadVoiceRecordings();
   }catch(error){voiceSave.disabled=false;show("voice-record-message","Could not save recording: "+(error.message||"Please try again."),"error");setVoiceStatus("Your recording is still available to retry.");}
 };
@@ -210,7 +240,7 @@ async function loadVoiceRecordings(){
   const rows=await Promise.all(data.map(async item=>{
     const {data:signed,error:signedError}=await sb.storage.from("pillmate-voice-reminders").createSignedUrl(item.storage_path,3600);
     if(signedError)return '<article class="med-card"><h3>'+escapeHtml(item.label)+'</h3><p class="pill-meta">Audio preview unavailable: '+escapeHtml(signedError.message)+'</p></article>';
-    return '<article class="med-card"><h3>'+escapeHtml(item.label)+'</h3><p class="pill-meta">'+new Date(item.created_at).toLocaleString()+'</p><audio controls preload="none" src="'+escapeHtml(signed.signedUrl)+'" style="width:100%"></audio></article>';
+    return '<article class="med-card"><h3>'+escapeHtml(item.label)+'</h3><p class="pill-meta">'+new Date(item.created_at).toLocaleString()+' · '+escapeHtml(item.mime_type||"audio")+'</p><audio controls preload="none" src="'+escapeHtml(signed.signedUrl)+'" style="width:100%"></audio><p><a class="pharmacy-link" href="'+escapeHtml(signed.signedUrl)+'" download="'+escapeHtml(item.label.replace(/[^a-z0-9_-]+/gi,"-")||"pillmate-reminder")+'.wav">Download WAV for PillMate-S3</a></p></article>';
   }));
   host.innerHTML=rows.join("");
 }
