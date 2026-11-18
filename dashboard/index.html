@@ -71,7 +71,7 @@ if(syncParams.get("pillmate_sync")==="1"){
   let scheduleValid=false;
   try{
     reminderTimes=JSON.parse(syncParams.get("reminder_times")||"[]");
-    scheduleValid=Array.isArray(reminderTimes)&&reminderTimes.length>=1&&reminderTimes.length<=24&&reminderTimes.every(t=>typeof t==="string"&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t));
+    scheduleValid=Array.isArray(reminderTimes)&&reminderTimes.length>=1&&reminderTimes.length<=24&&reminderTimes.every(t=>typeof t==="string"&&/^([01]\d|2[0-3]):[0-5]\d$/.test(t));
   }catch(_){scheduleValid=false;}
   const scheduleMode=syncParams.get("daily_mode")||"fixed_times";
   const dayPattern=syncParams.get("day_pattern")||"daily";
@@ -80,7 +80,7 @@ if(syncParams.get("pillmate_sync")==="1"){
   const firstDoseTime=syncParams.get("first_dose_time")||"";
   const hourInterval=parseOptionalNumber(syncParams.get("hour_interval"),true);
   const updatedAt=syncParams.get("device_updated_at")||new Date().toISOString();
-  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&Number.isFinite(pillsOnDoseDay)&&pillsOnDoseDay>0&&Number.isInteger(intervalDays)&&intervalDays>0&&Number.isInteger(courseDays)&&courseDays>0&&scheduleValid&&["fixed_times","hourly_interval"].includes(scheduleMode)&&["daily","alternate","weekly","custom_days"].includes(dayPattern)&&Number.isInteger(dosesPerDay)&&dosesPerDay>=1&&dosesPerDay<=4&&Number.isInteger(pillsPerDose)&&pillsPerDose>0&&(!Number.isNaN(hourInterval))&&(!firstDoseTime||/^([01]\\d|2[0-3]):[0-5]\\d$/.test(firstDoseTime));
+  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&Number.isFinite(pillsOnDoseDay)&&pillsOnDoseDay>0&&Number.isInteger(intervalDays)&&intervalDays>0&&Number.isInteger(courseDays)&&courseDays>0&&scheduleValid&&["fixed_times","hourly_interval"].includes(scheduleMode)&&["daily","alternate","weekly","custom_days"].includes(dayPattern)&&Number.isInteger(dosesPerDay)&&dosesPerDay>=1&&dosesPerDay<=4&&Number.isInteger(pillsPerDose)&&pillsPerDose>0&&(!Number.isNaN(hourInterval))&&(!firstDoseTime||/^([01]\d|2[0-3]):[0-5]\d$/.test(firstDoseTime));
   if(valid){
     sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({
       drawer,medName,pillsPutIn,pillsPerDay,pillsOnDoseDay,intervalDays,courseDays,
