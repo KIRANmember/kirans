@@ -27,7 +27,7 @@ unsigned long lastDiscoveryBroadcastMs = 0;
 const unsigned long DISCOVERY_INTERVAL_MS = 2000;
 
 // Hardware Pin Definitions
-const int SERVO_PINS[4] = {1, 2, 3, 4}; // Drawers 1-4
+const int SERVO_PINS[4] = {17, 21, 47, 48}; // Drawers 1-4
 const int PIR_PIN       = 5;            // Motion / Hand Sensor
 const int BUZZER_PIN    = 6;            // Box Piezo Buzzer
 const int RTC_DAT_PIN   = 40;           // DS1302 IO / DAT
