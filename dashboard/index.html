@@ -56,21 +56,34 @@ const $=id=>document.getElementById(id);let sb,user,profile;
 const show=(id,msg,type="success")=>{const el=$(id);el.textContent=msg;el.className="message show "+type};
 const PILLMATE_PENDING_SYNC_KEY="pillmate_pending_drawer_sync_v1";
 const parseOptionalNumber=(value,integer=false)=>{if(value===null||value==="")return null;const n=Number(value);return Number.isFinite(n)&&n>0&&(!integer||Number.isInteger(n))?n:NaN};
-const incomingParams=new URLSearchParams(window.location.search);
-if(incomingParams.get("pillmate_sync")==="1"){
-  const drawer=Number(incomingParams.get("drawer"));
-  const medName=(incomingParams.get("med_name")||"").trim();
-  const pillsPutIn=parseOptionalNumber(incomingParams.get("pills_put_in"),true);
-  const pillsPerDay=parseOptionalNumber(incomingParams.get("pills_per_day"));
-  const pillsOnDoseDay=parseOptionalNumber(incomingParams.get("pills_on_dose_day"));
-  const intervalDays=parseOptionalNumber(incomingParams.get("interval_days"),true);
-  const courseDays=parseOptionalNumber(incomingParams.get("course_days"),true);
-  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&(!Number.isNaN(pillsOnDoseDay))&&(!Number.isNaN(intervalDays))&&(!Number.isNaN(courseDays));
+const syncParams=window.location.hash.startsWith("#pillmate_sync=")
+  ? new URLSearchParams(window.location.hash.slice(1))
+  : new URLSearchParams(window.location.search);
+if(syncParams.get("pillmate_sync")==="1"){
+  const drawer=Number(syncParams.get("drawer"));
+  const medName=(syncParams.get("med_name")||"").trim();
+  const pillsPutIn=parseOptionalNumber(syncParams.get("pills_put_in"),true);
+  const pillsPerDay=parseOptionalNumber(syncParams.get("pills_per_day"));
+  const pillsOnDoseDay=parseOptionalNumber(syncParams.get("pills_on_dose_day"));
+  const intervalDays=parseOptionalNumber(syncParams.get("interval_days"),true);
+  const courseDays=parseOptionalNumber(syncParams.get("course_days"),true);
+  let reminderTimes=[];
+  let scheduleValid=false;
+  try{
+    reminderTimes=JSON.parse(syncParams.get("reminder_times")||"[]");
+    scheduleValid=Array.isArray(reminderTimes)&&reminderTimes.length>=1&&reminderTimes.length<=4&&reminderTimes.every(t=>typeof t==="string"&&/^([01]\\d|2[0-3]):[0-5]\\d$/.test(t));
+  }catch(_){scheduleValid=false;}
+  const updatedAt=syncParams.get("device_updated_at")||new Date().toISOString();
+  const valid=Number.isInteger(drawer)&&drawer>=1&&drawer<=4&&medName.length>0&&medName.length<=120&&Number.isInteger(pillsPutIn)&&pillsPutIn>0&&Number.isFinite(pillsPerDay)&&pillsPerDay>0&&Number.isFinite(pillsOnDoseDay)&&pillsOnDoseDay>0&&Number.isInteger(intervalDays)&&intervalDays>0&&Number.isInteger(courseDays)&&courseDays>0&&scheduleValid;
   if(valid){
-    sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({drawer,medName,pillsPutIn,pillsPerDay,pillsOnDoseDay,intervalDays,courseDays,updatedAt:new Date().toISOString()}));
+    sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({
+      drawer,medName,pillsPutIn,pillsPerDay,pillsOnDoseDay,intervalDays,courseDays,
+      reminderTimes,updatedAt
+    }));
   }else{
     sessionStorage.setItem(PILLMATE_PENDING_SYNC_KEY,JSON.stringify({error:"The PillMate setup data is incomplete or invalid. Please return to the device setup page and check the medicine details."}));
   }
+  // Remove the payload from the address bar after preserving it for login and sync.
   window.history.replaceState({},document.title,window.location.pathname);
 }
 try{
@@ -96,11 +109,11 @@ if(pendingSync){
         interval_days:payload.intervalDays,
         course_days:payload.courseDays,
         device_updated_at:payload.updatedAt,
-        reminder_times:[]
+        reminder_times:payload.reminderTimes
       },{onConflict:"user_id,drawer_number"});
       if(syncError)throw syncError;
       sessionStorage.removeItem(PILLMATE_PENDING_SYNC_KEY);
-      show("device-sync-message","Drawer "+payload.drawer+" — "+payload.medName+" saved to your PillMate dashboard.");
+      show("device-sync-message","Drawer "+payload.drawer+" — "+payload.medName+" and its "+payload.reminderTimes.join(", ")+" reminder schedule saved to your PillMate dashboard.");
     }
   }catch(syncError){
     show("device-sync-message","Could not save the PillMate medicine details: "+(syncError.message||"Please try again."),"error");
