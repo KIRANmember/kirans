@@ -28,6 +28,9 @@ const unsigned long DISCOVERY_INTERVAL_MS = 2000;
 
 // Hardware Pin Definitions
 const int SERVO_PINS[4] = {17, 21, 47, 48}; // Drawers 1-4
+const int VOICE_AUDIO_PIN = 4;           // PWM audio output
+const int VOICE_PWM_FREQ = 62500;        // High-frequency PWM carrier
+const int VOICE_PWM_RESOLUTION = 8;      // 8-bit audio duty cycle
 const int PIR_PIN       = 5;            // Motion / Hand Sensor
 const int BUZZER_PIN    = 6;            // Box Piezo Buzzer
 const int RTC_DAT_PIN   = 40;           // DS1302 IO / DAT
@@ -51,6 +54,71 @@ bool voiceUploadOk = false;
 String voiceUploadError = "";
 size_t voiceUploadBytes = 0;
 const size_t MAX_VOICE_FILE_BYTES = 1500000;
+
+TaskHandle_t voicePlaybackTaskHandle = nullptr;
+volatile int requestedVoiceDrawer = -1;
+volatile bool stopVoicePlayback = false;
+
+void playVoiceFileTask(void* parameter) {
+  const uint32_t sampleRate = 16000;
+  const uint32_t samplePeriodUs = 1000000UL / sampleRate;
+  uint8_t audioBuffer[512];
+
+  for (;;) {
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    int drawer = requestedVoiceDrawer;
+    if (drawer < 0 || drawer > 3) continue;
+
+    String path = "/voice" + String(drawer + 1) + ".wav";
+    if (!LittleFS.begin(false) || !LittleFS.exists(path)) {
+      Serial.printf("No voice reminder saved for Drawer %d\\n", drawer + 1);
+      continue;
+    }
+
+    File audioFile = LittleFS.open(path, "r");
+    if (!audioFile || audioFile.size() <= 44 || !audioFile.seek(44)) {
+      Serial.printf("Could not read voice reminder for Drawer %d\\n", drawer + 1);
+      if (audioFile) audioFile.close();
+      continue;
+    }
+
+    Serial.printf("Playing voice reminder for Drawer %d\\n", drawer + 1);
+    stopVoicePlayback = false;
+    int64_t nextSampleUs = esp_timer_get_time();
+
+    while (audioFile.available() >= 2 && !stopVoicePlayback) {
+      size_t bytesRead = audioFile.read(audioBuffer, sizeof(audioBuffer));
+      if (bytesRead < 2) break;
+
+      for (size_t i = 0; i + 1 < bytesRead; i += 2) {
+        if (stopVoicePlayback) break;
+
+        int16_t pcmSample = (int16_t)((uint16_t)audioBuffer[i] |
+                                     ((uint16_t)audioBuffer[i + 1] << 8));
+        uint8_t pwmSample = (uint8_t)(((int32_t)pcmSample + 32768) >> 8);
+        ledcWrite(VOICE_AUDIO_PIN, pwmSample);
+
+        nextSampleUs += samplePeriodUs;
+        while (esp_timer_get_time() < nextSampleUs) {
+          taskYIELD();
+        }
+      }
+    }
+
+    ledcWrite(VOICE_AUDIO_PIN, 128); // Midpoint duty = silence
+    audioFile.close();
+    Serial.printf("Voice reminder finished for Drawer %d\\n", drawer + 1);
+  }
+}
+
+void startVoicePlayback(int drawerIndex) {
+  if (drawerIndex < 0 || drawerIndex > 3) return;
+  requestedVoiceDrawer = drawerIndex;
+  stopVoicePlayback = true;
+  if (voicePlaybackTaskHandle != nullptr) {
+    xTaskNotifyGive(voicePlaybackTaskHandle);
+  }
+}
 
 // ESP-NOW Packet Structure (Matches PillStrap X)
 typedef struct struct_message {
@@ -846,6 +914,7 @@ void triggerDoseDispense(int idx, const String& curHM) {
   lastAlarmRepeatMs = millis();
 
   openDrawer(idx);
+  startVoicePlayback(idx);
   beepBox(2, 200);
   sendToBand("RING_BAND");
 
@@ -865,6 +934,21 @@ void setup() {
   pinMode(PIR_PIN, INPUT);
   pinMode(BUZZER_PIN, OUTPUT);
   digitalWrite(BUZZER_PIN, LOW);
+
+  if (!ledcAttach(VOICE_AUDIO_PIN, VOICE_PWM_FREQ, VOICE_PWM_RESOLUTION)) {
+    Serial.println("WARNING: Could not initialize voice PWM output on GPIO4.");
+  } else {
+    ledcWrite(VOICE_AUDIO_PIN, 128);
+    xTaskCreatePinnedToCore(
+      playVoiceFileTask,
+      "PillMateVoice",
+      4096,
+      nullptr,
+      1,
+      &voicePlaybackTaskHandle,
+      1
+    );
+  }
 
   for (int i = 0; i < 4; i++) {
     drawerServos[i].attach(SERVO_PINS[i]);
