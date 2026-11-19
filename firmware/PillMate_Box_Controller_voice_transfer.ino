@@ -256,15 +256,22 @@ void OnDataSent(const wifi_tx_info_t* tx_info, esp_now_send_status_t status) {
 // RTC & FLASH STORAGE (PREFERENCES)
 // =========================================================
 
-void syncRtcFromEpoch(uint32_t unixEpoch) {
+void syncRtcFromEpoch(uint32_t unixEpoch, int timezoneOffsetMinutes) {
   if (unixEpoch < 1700000000UL) return;
-  // RtcDS1302 uses seconds since Jan 1, 2000 (946684800 offset from 1970)
-  uint32_t rtc2000Sec = unixEpoch - 946684800UL;
+
+  // Medication times are entered in the browser's local timezone. The DS1302
+  // stores wall-clock time, so convert the UTC Unix timestamp to local time
+  // using JavaScript Date.getTimezoneOffset() (UTC minus local, in minutes).
+  const int64_t localEpoch = (int64_t)unixEpoch - ((int64_t)timezoneOffsetMinutes * 60LL);
+  if (localEpoch < 946684800LL) return;
+
+  // RtcDS1302 uses seconds since Jan 1, 2000 (946684800 offset from 1970).
+  const uint32_t rtc2000Sec = (uint32_t)(localEpoch - 946684800LL);
   RtcDateTime syncedTime;
   syncedTime.InitWithEpoch32Time(rtc2000Sec);
   if (syncedTime.IsValid()) {
     Rtc.SetDateTime(syncedTime);
-    Serial.println("DS1302 RTC synced from browser clock.");
+    Serial.printf("DS1302 RTC synced to browser local time (UTC offset: %d minutes).\\n", timezoneOffsetMinutes);
   }
 }
 
@@ -693,6 +700,9 @@ const char INDEX_HTML[] PROGMEM = R"rawliteral(
       // Sync device clock from phone browser time
       const now = new Date();
       formData.set('epoch', Math.floor(now.getTime() / 1000));
+      // Send the browser's UTC-minus-local offset so the DS1302 clock matches
+      // the local HH:MM medication schedule entered in this form.
+      formData.set('timezone_offset_minutes', String(now.getTimezoneOffset()));
 
       // Save locally to the ESP32-S3 before syncing to the website
       try {
@@ -850,7 +860,12 @@ void handleVoiceUploadComplete() {
 void handleSave() {
   if (server.hasArg("epoch")) {
     uint32_t ep = (uint32_t)strtoul(server.arg("epoch").c_str(), NULL, 10);
-    syncRtcFromEpoch(ep);
+    // The schedule uses browser-local HH:MM values; sync the RTC to that same
+    // timezone instead of leaving it in UTC.
+    int timezoneOffsetMinutes = server.hasArg("timezone_offset_minutes")
+      ? server.arg("timezone_offset_minutes").toInt()
+      : 0;
+    syncRtcFromEpoch(ep, timezoneOffsetMinutes);
   }
 
   int drawerNum = server.arg("drawer").toInt();
