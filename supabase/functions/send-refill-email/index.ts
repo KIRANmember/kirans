@@ -12,10 +12,12 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
   });
 
-const escapeHtml = (value: string) =>
-  value.replace(/[&<>"']/g, (character) => ({
+const escapeHtml = (value: string) => {
+  const entities: Record<string, string> = {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
-  })[character] ?? character);
+  };
+  return value.replace(/[&<>"']/g, (character) => entities[character] ?? character);
+};
 
 Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
