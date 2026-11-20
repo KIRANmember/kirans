@@ -21,7 +21,7 @@
 <div class="message" id="device-sync-message" role="status" aria-live="polite"></div>
 </section>
 <section class="panel">
-<h2>Caregiver contact and voice alerts</h2><p class="muted">Keep your WhatsApp number for existing reminders. Voice calls use a separately consented caregiver number.</p>
+<h2>Caregiver contact and voice alerts</h2><p class="muted">Keep your WhatsApp number for existing reminders. Voice calls use a separately consented caregiver number. Refill email alerts are sent to your registered account email: <strong id="registered-email"></strong>.</p>
 <form id="profile-form">
 <div class="field"><label for="phone">WhatsApp number</label><input id="phone" name="phone" type="tel" placeholder="+91 98765 43210" required autocomplete="tel"><small>Include country code, for example +91 for India.</small></div>
 <div class="field"><label for="voice-phone">Caregiver phone for voice refill alerts</label><input id="voice-phone" name="voice-phone" type="tel" placeholder="+91 98765 43210" autocomplete="tel"><small>Only this number can receive automated refill calls.</small></div>
@@ -70,6 +70,7 @@
 (async()=>{
 const $=id=>document.getElementById(id);let sb,user,profile;
 const show=(id,msg,type="success")=>{const el=$(id);el.textContent=msg;el.className="message show "+type};
+const sendRefillEmail=async medicationId=>{try{const {data,error}=await sb.functions.invoke("send-refill-email",{body:{medication_id:medicationId}});if(error)console.warn("PillMate refill email could not be sent:",error.message);return {data,error};}catch(error){console.warn("PillMate refill email could not be sent:",error);return {error};}};
 const PILLMATE_PENDING_SYNC_KEY="pillmate_pending_drawer_sync_v1";
 const parseOptionalNumber=(value,integer=false)=>{if(value===null||value==="")return null;const n=Number(value);return Number.isFinite(n)&&n>0&&(!integer||Number.isInteger(n))?n:NaN};
 const syncParams=window.location.hash.startsWith("#pillmate_sync=")
@@ -112,7 +113,7 @@ try{
 if(!window.PILLMATE_SUPABASE_URL||!window.PILLMATE_SUPABASE_ANON_KEY)throw new Error("Supabase configuration is missing.");
 sb=window.supabase.createClient(window.PILLMATE_SUPABASE_URL,window.PILLMATE_SUPABASE_ANON_KEY);
 const {data,error}=await sb.auth.getSession();if(error)throw error;if(!data.session){location.replace("/auth/login.html");return}
-user=data.session.user;$("user-name").textContent=user.user_metadata?.full_name||user.email;
+user=data.session.user;$("user-name").textContent=user.user_metadata?.full_name||user.email;$("registered-email").textContent=user.email||"No email is registered";
 const {data:loadedProfile,error:pe}=await sb.from("profiles").select("whatsapp_phone,voice_call_phone,voice_call_consent_at,voice_call_consent_version,voice_call_opted_out_at").eq("id",user.id).maybeSingle();if(pe)throw pe;profile=loadedProfile;if(profile?.whatsapp_phone)$("phone").value=profile.whatsapp_phone;if(profile?.voice_call_phone)$("voice-phone").value=profile.voice_call_phone;else if(profile?.whatsapp_phone)$("voice-phone").value=profile.whatsapp_phone;$("voice-consent").checked=Boolean(profile?.voice_call_consent_at&&!profile?.voice_call_opted_out_at);$("voice-opt-out").hidden=!profile?.voice_call_consent_at||Boolean(profile?.voice_call_opted_out_at);
 const pendingSync=sessionStorage.getItem(PILLMATE_PENDING_SYNC_KEY);
 if(pendingSync){
@@ -140,6 +141,7 @@ if(pendingSync){
         hour_interval:payload.scheduleMode==="hourly_interval"?payload.hourInterval:null
       },{onConflict:"user_id,drawer_number"});
       if(syncError)throw syncError;
+      if(payload.pillsPutIn<=Math.ceil(payload.pillsPutIn*.1)){const {data:syncMed}=await sb.from("medications").select("id").eq("user_id",user.id).eq("drawer_number",payload.drawer).maybeSingle();if(syncMed?.id)void sendRefillEmail(syncMed.id);}
       sessionStorage.removeItem(PILLMATE_PENDING_SYNC_KEY);
       show("device-sync-message","Drawer "+payload.drawer+" — "+payload.medName+" and its "+payload.reminderTimes.join(", ")+" reminder schedule saved to your PillMate dashboard.");
     }
@@ -155,7 +157,7 @@ $("profile-form").onsubmit=async e=>{e.preventDefault();const phone=$("phone").v
 $("voice-opt-out").onclick=async()=>{const {data:savedProfile,error}=await sb.from("profiles").update({voice_call_opted_out_at:new Date().toISOString()}).eq("id",user.id).select("whatsapp_phone,voice_call_phone,voice_call_consent_at,voice_call_consent_version,voice_call_opted_out_at").single();if(error){show("profile-message",error.message,"error");return}profile=savedProfile;$("voice-consent").checked=false;$("voice-opt-out").hidden=true;show("profile-message","Voice refill calls have been turned off.")};
 $("med-form").onsubmit=async e=>{e.preventDefault();const total=Number($("total").value),remaining=Number($("remaining").value),daily=Number($("daily").value);if(!Number.isInteger(total)||total<1||!Number.isInteger(remaining)||remaining<0||remaining>total||!Number.isFinite(daily)||daily<=0){show("med-message","Check the pill counts and daily dosage. Remaining pills cannot exceed the pack size.","error");return}
 const times=$("times").value.split(",").map(x=>x.trim()).filter(Boolean);if(times.some(t=>!/^([01]\d|2[0-3]):[0-5]\d$/.test(t))){show("med-message","Enter reminder times in HH:MM 24-hour format, separated by commas.","error");return}
-const {error}=await sb.from("medications").insert({user_id:user.id,medicine_name:$("medicine").value.trim(),total_pills:total,pills_remaining:remaining,daily_dose:daily,reminder_times:times});if(error)throw error;$("med-form").reset();show("med-message","Medication added.");await loadMeds()};
+const {data:created,error}=await sb.from("medications").insert({user_id:user.id,medicine_name:$("medicine").value.trim(),total_pills:total,pills_remaining:remaining,daily_dose:daily,reminder_times:times}).select("id").single();if(error)throw error;$("med-form").reset();show("med-message","Medication added.");if(remaining<=Math.ceil(total*.1))void sendRefillEmail(created.id);await loadMeds()};
 
 $("refresh").onclick=loadMeds;
 
@@ -270,8 +272,9 @@ async function loadWeeklyReview(){
 async function loadMeds(){const {data,error}=await sb.from("medications").select("*").eq("user_id",user.id).eq("active",true).order("created_at",{ascending:false});if(error){$("med-list").innerHTML='<div class="empty">Database setup is needed before medications can be saved. Run the SQL setup file in Supabase.</div>';return}
 if(!data.length){$("med-list").innerHTML='<div class="empty">No medications added yet. Add your first medication above.</div>';return}
 $("med-list").innerHTML=data.map(m=>{const threshold=Math.ceil(Number(m.total_pills)*.1),low=Number(m.pills_remaining)<=threshold;return '<article class="med-card"><h3>'+escapeHtml(m.medicine_name)+'</h3><div class="count">'+Number(m.pills_remaining)+' pills left</div><div class="pill-meta">'+(m.drawer_number?'PillMate drawer: '+m.drawer_number+'<br>':'')+'Pack size: '+m.total_pills+'<br>Daily dose: '+m.daily_dose+' pill(s)'+(m.pills_on_dose_day?' on dose day: '+m.pills_on_dose_day:'')+(m.interval_days?'<br>Every '+m.interval_days+' day(s)':'')+(m.course_days?'<br>Course duration: '+m.course_days+' day(s)':'')+(m.schedule_mode?'<br>Schedule: '+(m.schedule_mode==="hourly_interval"?'Every '+m.hour_interval+' hours':'Fixed daily times'):'')+(m.day_pattern?'<br>Day pattern: '+({daily:'Every day',alternate:'Alternate days',weekly:'Weekly',custom_days:'Every '+m.interval_days+' days'}[m.day_pattern]||m.day_pattern):'')+'<br>Refill alert at: '+threshold+' or fewer<br>Reminder times: '+(m.reminder_times?.length?m.reminder_times.join(", "):"Not set")+'</div>'+(low?'<div class="alert">Refill soon — you are at or below your 10% threshold.</div>':'')+'<div class="actions"><button class="secondary" data-demo="'+m.id+'">Demo: simulate one day</button><a class="pharmacy-link" href="https://www.1mg.com/" target="_blank" rel="noopener noreferrer">Find a Pharmacy</a></div><form class="refill-form" data-refill="'+m.id+'"><label>Pills received<input name="quantity" type="number" min="1" step="1" required placeholder="e.g. 30"></label><button type="submit">Record refill</button></form></article>'}).join("");
-document.querySelectorAll("[data-refill]").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const m=data.find(x=>x.id===form.dataset.refill);const quantity=Number(new FormData(form).get("quantity"));if(!Number.isInteger(quantity)||quantity<1){alert("Enter the number of pills received.");return}const next=Number(m.pills_remaining)+quantity;const {error}=await sb.from("medications").update({pills_remaining:next}).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}await loadMeds()});
-document.querySelectorAll("[data-demo]").forEach(b=>b.onclick=async()=>{const m=data.find(x=>x.id===b.dataset.demo);const next=Math.max(0,Number(m.pills_remaining)-Number(m.daily_dose));const {error}=await sb.from("medications").update({pills_remaining:next}).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}await loadMeds()});
+data.filter(m=>Number(m.pills_remaining)<=Math.ceil(Number(m.total_pills)*.1)).forEach(m=>void sendRefillEmail(m.id));
+document.querySelectorAll("[data-refill]").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const m=data.find(x=>x.id===form.dataset.refill);const quantity=Number(new FormData(form).get("quantity"));if(!Number.isInteger(quantity)||quantity<1){alert("Enter the number of pills received.");return}const next=Number(m.pills_remaining)+quantity,threshold=Math.ceil(Number(m.total_pills)*.1),updates={pills_remaining:next};if(next>threshold)updates.refill_email_sent_at=null;const {error}=await sb.from("medications").update(updates).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}await loadMeds()});
+document.querySelectorAll("[data-demo]").forEach(b=>b.onclick=async()=>{const m=data.find(x=>x.id===b.dataset.demo);const next=Math.max(0,Number(m.pills_remaining)-Number(m.daily_dose)),threshold=Math.ceil(Number(m.total_pills)*.1),crossed=Number(m.pills_remaining)>threshold&&next<=threshold;const {error}=await sb.from("medications").update({pills_remaining:next}).eq("id",m.id).eq("user_id",user.id);if(error){alert(error.message);return}if(crossed)void sendRefillEmail(m.id);await loadMeds()});
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 })();
